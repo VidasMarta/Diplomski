@@ -1,0 +1,22 @@
+# Model Hyperparameters
+model:
+  cell: "lstm"  # Options: "lstm", "gru"
+  hidden_size: 256
+  num_layers: 2
+  dropout: 0.3
+  learning_rate: 0.001
+  batch_size: 32
+  use_crf: true  # Set to false if CRF is not used
+  loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
+  optimizer: "adam"  # Options: "adam", "sgd", "rmsprop"
+  epochs: 10
+  max_length: 256
+  max_grad_norm: 5.0
+  early_stopping: 5
+
+# Embedding and Dataset Configuration
+settings:
+  embeddings: "glove"  # Options: "glove", "fasttext", "word2vec"
+  datasets: 
+    - "NCBI-Disease"
+    - "BC5CDR"
