@@ -8,7 +8,7 @@ model:
   batch_size: 32
   use_crf: true  # Set to false if CRF is not used
   loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
-  optimizer: "adam"  # Options: "adam", "sgd", "rmsprop"
+  optimizer: "adam"  # Options: "adam", "sgd", "rmsprop", "adamw"
   epochs: 10
   max_length: 256
   max_grad_norm: 5.0
@@ -16,7 +16,7 @@ model:
 
 # Embedding and Dataset Configuration
 settings:
-  embeddings: "glove"  # Options: "glove", "fasttext", "word2vec"
+  embeddings: "glove"  # Options: "glove", "fasttext", "word2vec", "elmo", "bert"
   datasets: 
     - "NCBI-Disease"
     - "BC5CDR"

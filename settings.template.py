@@ -17,6 +17,12 @@ class Settings:
         self.EXPERIMENTS_PATH = EXPERIMENTS_PATH
         self.LOG_PATH = LOG_PATH
         self.config = self.load_config(config_path)
+
+        self.model = self.config.get('model', {})
+        self.settings = self.config.get('settings', {})
+
+    def __iter__(self):
+        return iter((self.model, self.settings))
     
     def load_config(self, config_path: str) -> dict:
         with open(config_path, 'r') as file:

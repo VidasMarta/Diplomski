@@ -4,6 +4,8 @@ import datasets
 import models
 from settings import Settings
 
+
+# staviti da se spremaju u neki log file metrike po epohama ili tako nesto
 class Evaluation:
     def __init__(self, settings: Settings):
         self.settings = settings
