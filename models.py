@@ -13,6 +13,7 @@ class BiRNN_CRF(nn.Module):
         self.num_layers = model_args['num_layers']   
         self.dropout = model_args['dropout']
         self.use_crf = model_args['use_crf']
+        self.criterion = model_args['loss']
         self.embedding = embedding
 
         #self.bert = transformers.BertModel.from_pretrained(embedding_model_path, return_dict=False)
@@ -27,7 +28,14 @@ class BiRNN_CRF(nn.Module):
         
         self.hidden2tag_tag = nn.Linear(self.hidden_size, self.num_tag)
 
-        self.crf_tag = CRF(self.num_tag, batch_first=True)
+        if self.use_crf:
+            self.crf_tag = CRF(self.num_tag, batch_first=True)
+        else:
+            if self.criterion == 'cross_entropy':
+                self.criterion = nn.CrossEntropyLoss()
+            #mozda dodati jos neke loss funkcije
+            else:
+                raise ValueError(f"Loss {model_args['loss']} not supported")
     
     # Return the loss only, does not decode tags
     def forward(self, ids, mask, token_type_ids, target_tag):
@@ -37,10 +45,13 @@ class BiRNN_CRF(nn.Module):
 
         o_tag = self.dropout_tag(h)
         tag = self.hidden2tag_tag(o_tag)
-        mask = torch.where(mask == 1, True, False)
 
-        loss_tag = -self.crf_tag(tag, target_tag, mask=mask, reduction='token_mean')
-        loss = loss_tag
+        if self.crf_tag:
+            mask = torch.where(mask == 1, True, False)
+            loss_tag = -self.crf_tag(tag, target_tag, mask=mask, reduction='token_mean')
+            loss = loss_tag
+        else:  
+            loss = self.criterion(tag.view(-1, self.num_tag), target_tag.view(-1))
         
         return loss
 
@@ -52,8 +63,10 @@ class BiRNN_CRF(nn.Module):
 
         o_tag = self.dropout_tag(h)
         tag = self.hidden2tag_tag(o_tag)
-        mask = torch.where(mask == 1, True, False)
-        tag = self.crf_tag.decode(tag, mask=mask)
+        
+        if self.crf_tag:
+            mask = torch.where(mask == 1, True, False)
+            tag = self.crf_tag.decode(tag, mask=mask)
 
         return tag
 
