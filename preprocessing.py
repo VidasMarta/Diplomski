@@ -37,7 +37,7 @@ class Embedding_bioBERT(Embedding):
 
     def get_embedding(self, tokens): 
         '''
-        Get BioBERT embeddings and attention masks tensors with dimensions (batch_size, max_len, embedding_dim)  for a list of tokens
+        Get BioBERT embeddings and attention masks tensors with dimensions (batch_size, max_len, embedding_dim) and (batch_size, max_len) respectfuly  for a list of tokens
         Attention masks are used to differentiate between real tokens and padding tokens.
         Args:
             tokens: List of tokens

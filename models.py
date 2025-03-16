@@ -3,7 +3,6 @@ import transformers
 import torch.nn as nn
 from torchcrf import CRF
 
-#TODO postaviti attention maske
 class BiRNN_CRF(nn.Module):
     def __init__(self, num_tag, model_args, embedding_dim):
         super(BiRNN_CRF, self).__init__()
@@ -17,7 +16,6 @@ class BiRNN_CRF(nn.Module):
         self.criterion = model_args['loss']
         self.embedding_dim = embedding_dim
 
-        #self.bert = transformers.BertModel.from_pretrained(embedding_model_path, return_dict=False)
         if self.cell == 'lstm':
             self.rnn = nn.LSTM(self.embedding_dim, self.hidden_size, num_layers=self.num_layers, bidirectional=True, batch_first=True)
         elif self.cell == 'gru':    
@@ -27,7 +25,7 @@ class BiRNN_CRF(nn.Module):
 
         self.dropout_tag = nn.Dropout(self.dropout)
         
-        self.hidden2tag_tag = nn.Linear(self.hidden_size, self.num_tag)
+        self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
 
         if self.use_crf:
             self.crf_tag = CRF(self.num_tag, batch_first=True)
@@ -40,31 +38,46 @@ class BiRNN_CRF(nn.Module):
     
     # Return the loss only, does not decode tags
     def forward(self, embedding, target_tag, attention_masks): 
+        '''
+        Forward pass of the model, computes the loss 
+        Args:
+            embedding: Embedding tensor with dimensions (batch_size, max_len, embedding_dim)
+            target_tag: Target tag tensor with dimensions (batch_size, max_len)
+            attention_masks: Attention masks tensor with dimensions (batch_size, max_len)
+
+        Returns:
+            loss: Loss value of crf or cross entropy, if crf is used, the loss is token mean
+        '''
         h, _ = self.bilstm(embedding)
 
         o_tag = self.dropout_tag(h)
         tag = self.hidden2tag_tag(o_tag)
 
         if self.crf_tag:
-            #mask = torch.where(mask == 1, True, False)
-            #loss_tag = -self.crf_tag(tag, target_tag, mask=mask, reduction='token_mean')
-            loss = -self.crf_tag(tag, target_tag) #loss_tag
+            mask = attention_masks.bool()
+            loss = -self.crf_tag(tag, target_tag, mask=mask, reduction='token_mean')
         else:  
             loss = self.criterion(tag.view(-1, self.num_tag), target_tag.view(-1))
         
         return loss
 
-    # Encodes the tags, does not return loss
-    def encode(self, embedding, attention_masks):
+    def predict(self, embedding, attention_masks):
+        '''
+        Predict the most likely tag sequence
+        Args:
+            embedding: Embedding tensor with dimensions (batch_size, max_len, embedding_dim)
+            attention_masks: Attention masks tensor with dimensions (batch_size, max_len)
+        Returns:    
+            tag: Predicted tag tensor with dimensions (batch_size, max_len)
+        '''
         h, _ = self.rnn(embedding)
 
         o_tag = self.dropout_tag(h)
         tag = self.hidden2tag_tag(o_tag)
         
         if self.crf_tag:
-            #mask = torch.where(mask == 1, True, False)
-            #tag = self.crf_tag.decode(tag, mask=mask)
-            tag = self.crf_tag.decode(tag)
+            mask = attention_masks.bool()
+            tag = self.crf_tag.decode(tag, mask=mask)
 
         return tag
 
