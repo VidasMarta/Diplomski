@@ -7,6 +7,7 @@ DATA_PATH = "/path/to/data"
 OUTPUT_PATH = "/path/to/output"
 EXPERIMENTS_PATH = "/path/to/experiments"
 LOG_PATH = "/path/to/logs"
+EMBEDDINGS_PATH = "/path/to/embeddings"
 # Paths to essential files
 
 class Settings:

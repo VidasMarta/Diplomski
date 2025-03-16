@@ -17,7 +17,5 @@ model:
 
 # Embedding and Dataset Configuration
 settings:
-  embeddings: "glove"  # Options: "glove", "fasttext", "word2vec", "elmo", "bert"
-  datasets: 
-    - "NCBI-Disease"
-    - "BC5CDR"
+  embedding: "bioBERT"  # Options: "bioELMo"
+  dataset: "NCBI-Disease" # Other option: "BC5CDR"

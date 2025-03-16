@@ -12,6 +12,7 @@ from torch.optim import *
 from settings import Settings
 from datasets import Dataset
 from torch.nn.utils import clip_grad_norm_
+import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Training script")
@@ -30,14 +31,18 @@ def define_optimizer(model, name, lr):
     else:
         raise ValueError(f"Optimizer {name} not supported")
     
-def train_one_epoch(model, data_loader, optimizer, device, max_grad_norm):
+def train_one_epoch(model, data_loader, embeddings_model, optimizer, device, max_grad_norm):
     model.train()
     final_loss = 0
     for data in data_loader: # tqdm(data_loader, total=len(data_loader)):
-        for k, v in data.items(): 
-            data[k] = v.to(device)
         optimizer.zero_grad()
-        loss = model(**data)
+
+        batch_embeddings, batch_attention_masks = embeddings_model.get_embedding(data['tokens'])
+        batch_embeddings = batch_embeddings.to(device)
+        batch_attention_masks = batch_attention_masks.to(device)
+
+        tags = data['tags'].to(device)
+        loss = model(batch_embeddings, tags, batch_attention_masks)
         loss.backward()
         if max_grad_norm is not None:
             clip_grad_norm_(model.parameters(), max_grad_norm)
@@ -45,32 +50,36 @@ def train_one_epoch(model, data_loader, optimizer, device, max_grad_norm):
         final_loss += loss.item()
     return final_loss / len(data_loader)
 
-def validate(model, data_loader, device):
+def validate(model, data_loader, embeddings_model, device):
     model.eval()  # Set model to evaluation mode
     with torch.no_grad():
         final_loss = 0
         for data in data_loader: # tqdm(data_loader, total=len(data_loader)):
-            for k, v in data.items():
-                data[k] = v.to(device)
-            loss = model(**data)
+            batch_embeddings, batch_attention_masks = embeddings_model.get_embedding(data['tokens'])
+            batch_embeddings = batch_embeddings.to(device)
+            batch_attention_masks = batch_attention_masks.to(device)
+
+            tags = data['tags'].to(device)
+            loss = model(batch_embeddings, tags, batch_attention_masks)
             final_loss += loss.item()
     return final_loss / len(data_loader)
 
 
-def train(model_name, model_args, settings_args, dataset, train_dataset, valid_dataset):
+def train(model_name, model_args, dataset, train_dataset, valid_dataset, embeddings_model):
     num_tags = dataset.num_tags
     max_grad_norm = model_args['max_grad_norm']
-    # Create a model
-    embedding = Embedding(settings_args['embedding'], dataset.tokenizer) #TODO: prepraviti argumente ako treba
-    model = models.BiRNN_CRF(num_tags, model_args, embedding)
+    # Create models
+    model = models.BiRNN_CRF(num_tags, model_args, embeddings_model.embedding_dim)
+    best_model = models.BiRNN_CRF(num_tags, model_args, embeddings_model.dim)
 
     num_epochs = model_args['epochs']
     device = model_args['device']
     optimizer = define_optimizer(model, model_args['optimizer'], model_args['lr'])
 
     model.to(device)
-    data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=model_args['batch_size'], shuffle=True)
-    valid_data_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=model_args['batch_size'], shuffle=False)
+    batch_size = model_args['batch_size']
+    data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    valid_data_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
 
     #Initialize Variables for EarlyStopping
     best_loss = float('inf')
@@ -80,11 +89,11 @@ def train(model_name, model_args, settings_args, dataset, train_dataset, valid_d
     min_delta = model_args['min_delta']
 
     for epoch in range(num_epochs):
-        train_loss = train_one_epoch(model, data_loader, optimizer, device, max_grad_norm)
+        train_loss = train_one_epoch(model, data_loader, embeddings_model, optimizer, device, max_grad_norm)
         torch.cuda.empty_cache()
 
         # Validation
-        val_loss = validate(model, valid_data_loader, device)
+        val_loss = validate(model, valid_data_loader, embeddings_model, device)
         torch.cuda.empty_cache()
 
         # Early stopping
@@ -103,7 +112,6 @@ def train(model_name, model_args, settings_args, dataset, train_dataset, valid_d
         print(f"Validation Loss ({epoch}/{num_epochs}) = {val_loss}")
 
     # Save the best model
-    best_model = models.BiRNN_CRF(num_tags, model_args, embedding)
     best_model.load_state_dict(best_model_weights)
     torch.save(best_model.state_dict(), Settings.MODEL_PATH +f"{model_name}_best.bin")
 
@@ -119,15 +127,17 @@ def main():
     print("Settings Args:", settings_args)
     
     eval = Evaluation(settings_args)
-    # TODO: napisati kod u datasets, preprocessing, evaluation i prepraviti stvari u models
+    # TODO: napisati kod u evaluation i prepraviti stvari u models
     dataset = Dataset(settings_args['dataset'], Settings.DATA_PATH)
-    enc_tag = dataset.enc_tag # ne znam sta je tocno ovo
     train_dataset, valid_dataset, test_dataset = dataset.load_data()
-    train(model_name, model_args, settings_args, dataset, train_dataset, valid_dataset)
+    embedding_model = Embedding(settings_args['embedding'],
+                                Settings.EMBEDDINGS_PATH, 
+                                dataset.dataset_name)
+    train(model_name, model_args, dataset, train_dataset, valid_dataset, embedding_model)
 
     #Evaluate on test set
     model = torch.load(Settings.MODEL_PATH + f"{model_name}_best.bin")
-    eval.evaluate(test_dataset, model, model_args['device'], enc_tag)
+    eval.evaluate(test_dataset, model, model_args['device'], embedding_model)
     
 if __name__ == "__main__":
     main()

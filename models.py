@@ -3,8 +3,9 @@ import transformers
 import torch.nn as nn
 from torchcrf import CRF
 
+#TODO postaviti attention maske
 class BiRNN_CRF(nn.Module):
-    def __init__(self, num_tag, model_args, embedding):
+    def __init__(self, num_tag, model_args, embedding_dim):
         super(BiRNN_CRF, self).__init__()
         self.num_tag = num_tag
 
@@ -14,13 +15,13 @@ class BiRNN_CRF(nn.Module):
         self.dropout = model_args['dropout']
         self.use_crf = model_args['use_crf']
         self.criterion = model_args['loss']
-        self.embedding = embedding
+        self.embedding_dim = embedding_dim
 
         #self.bert = transformers.BertModel.from_pretrained(embedding_model_path, return_dict=False)
         if self.cell == 'lstm':
-            self.rnn = nn.LSTM(self.embedding.embedding_dim, self.hidden_size, num_layers=self.num_layers, bidirectional=True, batch_first=True)
+            self.rnn = nn.LSTM(self.embedding_dim, self.hidden_size, num_layers=self.num_layers, bidirectional=True, batch_first=True)
         elif self.cell == 'gru':    
-            self.rnn = nn.GRU(self.embedding.embedding_dim, self.hidden_size, num_layers=self.num_layers, bidirectional=True, batch_first=True)
+            self.rnn = nn.GRU(self.embedding_dim, self.hidden_size, num_layers=self.num_layers, bidirectional=True, batch_first=True)
         else:       
             raise ValueError(f"Cell {self.cell} not supported")
 
@@ -38,35 +39,32 @@ class BiRNN_CRF(nn.Module):
                 raise ValueError(f"Loss {model_args['loss']} not supported")
     
     # Return the loss only, does not decode tags
-    def forward(self, ids, mask, token_type_ids, target_tag):
-        #TODO: embedding nadopuni argumente
-        x, _ = self.embedding() #self.bert(ids, attention_mask=mask, token_type_ids=token_type_ids)
-        h, _ = self.bilstm(x)
+    def forward(self, embedding, target_tag, attention_masks): 
+        h, _ = self.bilstm(embedding)
 
         o_tag = self.dropout_tag(h)
         tag = self.hidden2tag_tag(o_tag)
 
         if self.crf_tag:
-            mask = torch.where(mask == 1, True, False)
-            loss_tag = -self.crf_tag(tag, target_tag, mask=mask, reduction='token_mean')
-            loss = loss_tag
+            #mask = torch.where(mask == 1, True, False)
+            #loss_tag = -self.crf_tag(tag, target_tag, mask=mask, reduction='token_mean')
+            loss = -self.crf_tag(tag, target_tag) #loss_tag
         else:  
             loss = self.criterion(tag.view(-1, self.num_tag), target_tag.view(-1))
         
         return loss
 
     # Encodes the tags, does not return loss
-    def encode(self, ids, mask, token_type_ids, target_tag):
-        #TODO: embedding nadopuni argumente
-        x, _ = self.embedding() # self.bert(ids, attention_mask=mask, token_type_ids=token_type_ids)
-        h, _ = self.rnn(x)
+    def encode(self, embedding, attention_masks):
+        h, _ = self.rnn(embedding)
 
         o_tag = self.dropout_tag(h)
         tag = self.hidden2tag_tag(o_tag)
         
         if self.crf_tag:
-            mask = torch.where(mask == 1, True, False)
-            tag = self.crf_tag.decode(tag, mask=mask)
+            #mask = torch.where(mask == 1, True, False)
+            #tag = self.crf_tag.decode(tag, mask=mask)
+            tag = self.crf_tag.decode(tag)
 
         return tag
 
