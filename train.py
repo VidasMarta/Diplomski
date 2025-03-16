@@ -130,7 +130,7 @@ def main():
     # TODO: napisati kod u evaluation i prepraviti stvari u models
     dataset = Dataset(settings_args['dataset'], Settings.DATA_PATH)
     train_dataset, valid_dataset, test_dataset = dataset.load_data()
-    embedding_model = Embedding(settings_args['embedding'],
+    embedding_model = Embedding.create(settings_args['embedding'],
                                 Settings.EMBEDDINGS_PATH, 
                                 dataset.dataset_name)
     train(model_name, model_args, dataset, train_dataset, valid_dataset, embedding_model)
