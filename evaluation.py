@@ -15,6 +15,14 @@ class Evaluation:
         self.tags = tags
 
     def evaluate(self, data_loader, model, device, embeddings_model):
+        '''
+        Evaluate the model on the test set
+        Args:
+            data_loader: DataLoader object with test data
+            model: Model object
+            device: Device to run the model on
+            embeddings_model: Embedding object
+        '''
         model = model.to(device)    
         model.eval()  # Set model to evaluation mode
         all_true_tags = []
@@ -35,7 +43,7 @@ class Evaluation:
                 all_true_tags.extend(true_tags.cpu().numpy().flatten()) #flatten so that the batch dimension is removed
                 all_pred_tags.extend(np.array(pred_tags).flatten())
 
-                       
+            #TODO dodati da se sprema u neki output file   
             print(f"Test Loss = {final_loss / len(data_loader)}")
             print(classification_report(all_true_tags, all_pred_tags, target_labels=list(self.tags.values()), target_names=list(self.tags.keys())))
             cm = confusion_matrix(all_true_tags, all_pred_tags)

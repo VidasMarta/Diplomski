@@ -16,6 +16,16 @@ class Embedding(ABC):
 
     @staticmethod
     def create(embedding_model_name, embeddings_path, dataset_name, max_len=256):
+        '''
+        Factory method to create an embedding model
+        Args:
+            embedding_model_name: Name of the embedding model
+            embeddings_path: Path to save embeddings
+            dataset_name: Name of the dataset
+            max_len: Maximum length of the input sequence
+        Returns:
+            Embedding model instance or raises ValueError if the embedding model is not supported
+        '''
         if embedding_model_name == 'bioBERT':
             return Embedding_bioBERT(embedding_model_name, embeddings_path, dataset_name, max_len)
         elif embedding_model_name == 'bioELMo':

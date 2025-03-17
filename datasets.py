@@ -7,7 +7,7 @@ class Dataset:
         self.folder_path = os.path.join(dataset_path, dataset_name)
         self.num_tags = 0
 
-    def load_file(self, file_name): 
+    def _load_file(self, file_name): 
         file_path = os.path.join(self.folder_path, file_name)
         if os.path.exists(file_path):
             with open(file_path, "r", encoding="utf-8") as f:
@@ -42,9 +42,9 @@ class Dataset:
         with open(tags_file, "r", encoding="utf-8") as f:
                 total_tags = json.load(f)
         self.num_tags = len(total_tags)
-        tokens_train, tags_train = self.load_file(train_file)
-        tokens_val, tags_val =self.load_file(val_file)
-        tokens_test, tags_test = self.load_file(test_file)
+        tokens_train, tags_train = self._load_file(train_file)
+        tokens_val, tags_val =self._load_file(val_file)
+        tokens_test, tags_test = self._load_file(test_file)
 
         return total_tags, (tokens_train, tags_train), (tokens_val, tags_val), (tokens_test, tags_test)
 

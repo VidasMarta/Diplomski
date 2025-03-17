@@ -107,7 +107,7 @@ def train(model_name, model_args, dataset, train_dataset, valid_dataset, embeddi
             if epochs_no_improve >= patience:
                 print(f"Early stopping triggered after {epoch+1} epochs.")
                 break
-
+        #TODO dodati da se sprema u neki output file 
         print(f"Train Loss ({epoch}/{num_epochs}) = {train_loss}")
         print(f"Validation Loss ({epoch}/{num_epochs}) = {val_loss}")
 
@@ -126,7 +126,7 @@ def main():
     print("Model Args:", model_args)
     print("Settings Args:", settings_args)
     
-    # TODO: napisati kod u evaluation i CNN charachter embedding u preprocessing
+    # TODO: napisati kod za CNN charachter embedding u preprocessing
     dataset = Dataset(settings_args['dataset'], Settings.DATA_PATH)
     total_tags, (tokens_train, tags_train), (tokens_val, tags_val), (tokens_test, tags_test) = dataset.load_data()
     train_dataset = {'tokens': tokens_train, 'tags': tags_train}
