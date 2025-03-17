@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# staviti da se spremaju u neki log file metrike po epohama ili tako nesto
+# TODO: mozda koristiti seqval (https://github.com/chakki-works/seqeval/tree/master) za evaluaciju
 class Evaluation:
     def __init__(self, tags):
         self.tags = tags
@@ -23,6 +23,8 @@ class Evaluation:
             device: Device to run the model on
             embeddings_model: Embedding object
         '''
+        if device == 'cuda' and not torch.cuda.is_available():
+            device = 'cpu'
         model = model.to(device)    
         model.eval()  # Set model to evaluation mode
         all_true_tags = []

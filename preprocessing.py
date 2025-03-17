@@ -6,6 +6,7 @@ from allennlp.modules.elmo import Elmo
 from abc import ABC, abstractmethod
 
 #TODO dodati CNN charachter based embeddings
+#TODO dodati druge varijante labelinga (npr. BIOES)
 class Embedding(ABC):
     def __init__(self, embedding_model_name, embeddings_path, dataset_name, max_len=256):
         self.dataset_name = dataset_name
@@ -88,6 +89,7 @@ class Embedding_bioELMo(Embedding):
     def __init__(self, embedding_model_name, embeddings_path, dataset_name, max_len=256):
         super(Embedding_bioELMo, self).__init__(embedding_model_name, embeddings_path, dataset_name, max_len)
         # Load BioELMo Model
+        #TODO provjetiti jel ovo radi, a mozda i fiksno skinuti tezine i options file dostupne na https://github.com/Andy-jqa/bioelmo?tab=readme-ov-file
         options_file = "https://allennlp.s3.amazonaws.com/models/elmo/biomed_elmo_options.json"
         weight_file = "https://allennlp.s3.amazonaws.com/models/elmo/biomed_elmo_weights.hdf5"
         self.elmo = Elmo(options_file, weight_file, num_output_representations=1, dropout=0)

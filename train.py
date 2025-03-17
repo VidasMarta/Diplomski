@@ -74,6 +74,8 @@ def train(model_name, model_args, dataset, train_dataset, valid_dataset, embeddi
 
     num_epochs = model_args['epochs']
     device = model_args['device']
+    if device == 'cuda' and not torch.cuda.is_available():
+        device = 'cpu'
     optimizer = define_optimizer(model, model_args['optimizer'], model_args['lr'])
 
     model.to(device)
