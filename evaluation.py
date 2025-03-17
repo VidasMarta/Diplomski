@@ -4,7 +4,9 @@ import datasets
 import models
 from settings import Settings
 import torch
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 # staviti da se spremaju u neki log file metrike po epohama ili tako nesto
@@ -36,3 +38,7 @@ class Evaluation:
                        
             print(f"Test Loss = {final_loss / len(data_loader)}")
             print(classification_report(all_true_tags, all_pred_tags, target_labels=list(self.tags.values()), target_names=list(self.tags.keys())))
+            cm = confusion_matrix(all_true_tags, all_pred_tags)
+            disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=list(self.tags.keys()))
+            disp.plot()
+            plt.show()
