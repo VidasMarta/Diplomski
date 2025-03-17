@@ -34,7 +34,6 @@ class Dataset_Converter:
                         sentences.append(sentence)
                         tag = self.enc_tag.transform(tag).tolist()
                         tags.append(tag)
-                        # {"tags": [1, 0, 0, 2, 0], "tokens": ["Famotidine", "-", "associated", "delirium", "."]}
                         json_format["tags"] = tag
                         json_format["tokens"] = sentence
                         json_list.append(json_format)
@@ -65,7 +64,7 @@ class Dataset_Converter:
 
         tags_file = os.path.join(self.folder_path, "classes.txt")        
         train_file = os.path.join(self.folder_path, "train.tsv")
-        val_file = os.path.join(self.folder_path, "validation.tsv")
+        val_file = os.path.join(self.folder_path, "devel.tsv")
         test_file = os.path.join(self.folder_path, "test.tsv")
         
         with open(tags_file, "r", encoding="utf-8") as f:
