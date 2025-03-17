@@ -78,8 +78,8 @@ def train(model_name, model_args, dataset, train_dataset, valid_dataset, embeddi
 
     model.to(device)
     batch_size = model_args['batch_size']
-    data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    valid_data_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
+    data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
+    valid_data_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=batch_size)
 
     #Initialize Variables for EarlyStopping
     best_loss = float('inf')
@@ -126,18 +126,22 @@ def main():
     print("Model Args:", model_args)
     print("Settings Args:", settings_args)
     
-    eval = Evaluation(settings_args)
-    # TODO: napisati kod u evaluation i prepraviti stvari u models
+    # TODO: napisati kod u evaluation i CNN charachter embedding u preprocessing
     dataset = Dataset(settings_args['dataset'], Settings.DATA_PATH)
-    train_dataset, valid_dataset, test_dataset = dataset.load_data()
+    total_tags, (tokens_train, tags_train), (tokens_val, tags_val), (tokens_test, tags_test) = dataset.load_data()
+    train_dataset = {'tokens': tokens_train, 'tags': tags_train}
+    valid_dataset = {'tokens': tokens_val, 'tags': tags_val}
+    test_dataset = {'tokens': tokens_test, 'tags': tags_test}
     embedding_model = Embedding.create(settings_args['embedding'],
                                 Settings.EMBEDDINGS_PATH, 
                                 dataset.dataset_name)
     train(model_name, model_args, dataset, train_dataset, valid_dataset, embedding_model)
 
     #Evaluate on test set
-    model = torch.load(Settings.MODEL_PATH + f"{model_name}_best.bin")
-    eval.evaluate(test_dataset, model, model_args['device'], embedding_model)
+    best_model = torch.load(Settings.MODEL_PATH + f"{model_name}_best.bin")
+    eval = Evaluation(total_tags)
+    test_data_loader = torch.utils.data.DataLoader(test_dataset, batch_size=model_args['batch_size'])
+    eval.evaluate(test_data_loader, best_model, model_args['device'], embedding_model)
     
 if __name__ == "__main__":
     main()

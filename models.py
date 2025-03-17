@@ -78,6 +78,8 @@ class BiRNN_CRF(nn.Module):
         if self.crf_tag:
             mask = attention_masks.bool()
             tag = self.crf_tag.decode(tag, mask=mask)
+        else:
+            tag = torch.argmax(tag, dim=-1)
 
         return tag
 
