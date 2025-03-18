@@ -9,7 +9,7 @@ model:
   use_crf: true  # Set to false if CRF is not used
   loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
   optimizer: "adam"  # Options: "adam", "sgd", "rmsprop", "adamw"
-  epochs: 10
+  epochs: 1 #10
   max_length: 256
   max_grad_norm: 5.0
   early_stopping: 5
@@ -18,4 +18,4 @@ model:
 # Embedding and Dataset Configuration
 settings:
   embedding: "bioBERT"  # Options: "bioELMo"
-  dataset: "NCBI-Disease" # Other option: "BC5CDR"
+  dataset: "ncbi_disease_json" # Other option: "bc5cdr_json"

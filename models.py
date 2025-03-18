@@ -1,7 +1,7 @@
 import torch
 import transformers
 import torch.nn as nn
-from torchcrf import CRF
+from TorchCRF import CRF
 
 class BiRNN_CRF(nn.Module):
     def __init__(self, num_tag, model_args, embedding_dim):
@@ -28,7 +28,7 @@ class BiRNN_CRF(nn.Module):
         self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
 
         if self.use_crf:
-            self.crf_tag = CRF(self.num_tag, batch_first=True)
+            self.crf_tag = CRF(self.num_tag)
         else:
             if self.criterion == 'cross_entropy':
                 self.criterion = nn.CrossEntropyLoss()
@@ -48,14 +48,14 @@ class BiRNN_CRF(nn.Module):
         Returns:
             loss: Loss value of crf or cross entropy, if crf is used, the loss is token mean
         '''
-        h, _ = self.bilstm(embedding)
+        h, _ = self.rnn(embedding)
 
         o_tag = self.dropout_tag(h)
         tag = self.hidden2tag_tag(o_tag)
 
         if self.crf_tag:
-            mask = attention_masks.bool()
-            loss = -self.crf_tag(tag, target_tag, mask=mask, reduction='token_mean')
+            mask = torch.squeeze(attention_masks, -2).bool() #has to be in shape (batch_size, sequence_size)
+            loss = -self.crf_tag.forward(tag, target_tag, mask).mean()
         else:  
             loss = self.criterion(tag.view(-1, self.num_tag), target_tag.view(-1))
         
@@ -76,8 +76,8 @@ class BiRNN_CRF(nn.Module):
         tag = self.hidden2tag_tag(o_tag)
         
         if self.crf_tag:
-            mask = attention_masks.bool()
-            tag = self.crf_tag.decode(tag, mask=mask)
+            mask = torch.squeeze(attention_masks, -2).bool()
+            tag = self.crf_tag.viterbi_decode(tag, mask)
         else:
             tag = torch.argmax(tag, dim=-1)
 
