@@ -7,6 +7,7 @@ import torch
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, f1_score
 import numpy as np
 import matplotlib.pyplot as plt
+import seqeval
 
 
 # TODO: mozda koristiti seqval (https://github.com/chakki-works/seqeval/tree/master) za evaluaciju
@@ -14,7 +15,7 @@ class Evaluation:
     def __init__(self, tags):
         self.tags = tags
 
-    def evaluate(self, data_loader, model, device, embeddings_model): #, loss_logger, log_file_name, epoch = 0, test=False):
+    def evaluate(self, data_loader, model, device, embeddings_model, labels): #, loss_logger, log_file_name, epoch = 0, test=False):
         '''
         Evaluate the model on the test set
         Args:
@@ -61,6 +62,6 @@ class Evaluation:
                 print(f"Test Loss = {final_loss / len(data_loader)}")
                 print(classification_report(all_true_tags, all_pred_tags)) #, labels=list(self.tags.values()), target_names=list(self.tags.keys())))
                 cm = confusion_matrix(all_true_tags, all_pred_tags)
-                disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=list(self.tags.keys()))
+                disp = ConfusionMatrixDisplay(confusion_matrix=cm) #, display_labels=list(self.tags.keys()))
                 disp.plot()
                 plt.show()

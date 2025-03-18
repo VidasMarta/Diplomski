@@ -148,12 +148,12 @@ def main():
 
     #Evaluate on test set
 
-    best_model_weights = torch.load(settings.MODEL_PATH + f"{model_name}_best.bin")
+    best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
     best_model = models.BiRNN_CRF(num_tags, model_args, embeddings_model.embedding_dim) 
     best_model.load_state_dict(best_model_weights)
     eval = Evaluation(total_tags)
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=model_args['batch_size'])
-    eval.evaluate(test_data_loader, best_model, device, embeddings_model)
+    eval.evaluate(test_data_loader, best_model, device, embeddings_model, total_tags.keys())
     
 if __name__ == "__main__":
     main()
