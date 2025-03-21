@@ -32,11 +32,12 @@ class Evaluation:
         with torch.no_grad():
             final_loss = 0
             for tokens, tags, att_mask in data_loader: # tqdm(data_loader, total=len(data_loader)):
-                batch_embeddings, batch_attention_masks = embeddings_model.get_embedding(tokens, att_mask)
+                batch_embeddings = embeddings_model.get_embedding(tokens, att_mask)
                 batch_embeddings = batch_embeddings.to(device)
-                batch_attention_masks = batch_attention_masks.to(device)
+                batch_attention_masks = att_mask.to(device)
+                batch_tags = tags.to(device)
 
-                loss = model(batch_embeddings, tags, batch_attention_masks)
+                loss = model(batch_embeddings, batch_tags, batch_attention_masks)
                 final_loss += loss.item()
 
                 pred_tags = model.predict(batch_embeddings, batch_attention_masks)
