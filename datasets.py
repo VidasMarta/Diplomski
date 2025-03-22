@@ -68,7 +68,7 @@ class Dataset:
     def __getitem__(self, idx):
         return (
             self.tokens[idx], 
-            self.tags[idx],  # Convert to tensor
+            self.tags[idx],  
             self.attention_masks[idx]
         )
 

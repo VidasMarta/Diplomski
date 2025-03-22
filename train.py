@@ -135,9 +135,11 @@ def main():
         device = 'cpu'
     
     # TODO: napisati kod za CNN charachter embedding u preprocessing
+
     dataset_loader = DatasetLoader("ncbi_disease_json", settings.DATA_PATH)
-    total_tags, (text_train, tags_train), (text_val, tags_val), (text_test, tags_test) = dataset_loader.load_data()
-    num_tags = len(total_tags)
+    tag_to_num, (text_train, tags_train), (text_val, tags_val), (text_test, tags_test) = dataset_loader.load_data()
+    num_tags = len(tag_to_num)
+    num_to_tag = dict((v,k) for k,v in tag_to_num.items())
     
     max_len = get_max_len(text_train, text_val, text_test)
 
@@ -145,10 +147,10 @@ def main():
                                 settings.EMBEDDINGS_PATH, 
                                 dataset_loader.dataset_name, max_len)
     
-    tokens_train_padded, tags_train_padded, attention_masks_train = embeddings_model.tokenize_and_pad_text(text_train, tags_train)
-    train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)
-    tokens_val_padded, tags_val_padded, attention_masks_val = embeddings_model.tokenize_and_pad_text(text_val, tags_val)
-    val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
+    #tokens_train_padded, tags_train_padded, attention_masks_train = embeddings_model.tokenize_and_pad_text(text_train, tags_train)
+    #train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)
+    #tokens_val_padded, tags_val_padded, attention_masks_val = embeddings_model.tokenize_and_pad_text(text_val, tags_val)
+    #val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
 
     #train(model_name, model_args, num_tags, train_data, val_data, embeddings_model, device)
 
@@ -160,8 +162,8 @@ def main():
     best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
     best_model = models.BiRNN_CRF(num_tags, model_args, embeddings_model.embedding_dim) 
     best_model.load_state_dict(best_model_weights)
-    eval = Evaluation(total_tags)
-    eval.evaluate(test_data_loader, best_model, device, embeddings_model, total_tags.keys())
+    eval = Evaluation(settings_args["tagging_scheme"])
+    eval.evaluate(test_data_loader, best_model, device, embeddings_model, num_to_tag)
     
 if __name__ == "__main__":
     main()

@@ -31,7 +31,7 @@ class BiRNN_CRF(nn.Module):
             self.crf_tag = CRF(self.num_tag)
         else:
             if self.criterion == 'cross_entropy':
-                self.criterion = nn.CrossEntropyLoss()
+                self.criterion = nn.CrossEntropyLoss(ignore_index=-1) #to ignore padding in loss computation
             #mozda dodati jos neke loss funkcije
             else:
                 raise ValueError(f"Loss {model_args['loss']} not supported")

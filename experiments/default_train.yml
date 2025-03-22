@@ -19,3 +19,4 @@ model:
 settings:
   embedding: "bioBERT"  # Options: "bioELMo"
   dataset: "ncbi_disease_json" # Other option: "bc5cdr_json"
+  tagging_scheme : "IOB1" #Other options: IOBES (depends on how the dataset is tagged)
