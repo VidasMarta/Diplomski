@@ -4,7 +4,6 @@ from preprocessing import Embedding
 import settings
 import torch
 from torch.nn.utils.rnn import pad_sequence
-import itertools
 
 MAX_LEN = 256
 
@@ -99,9 +98,7 @@ if __name__ == "__main__":
     
     max_len = get_max_len(text_train, text_val, text_test)
 
-    embeddings_model = Embedding.create('bioBERT',
-                                settings.EMBEDDINGS_PATH, 
-                                dataset_loader.dataset_name, max_len)
+    embeddings_model = Embedding.create('bioELMo', dataset_loader.dataset_name, max_len) #bioBERT
     
     tokens_train_padded, tags_train_padded, attention_masks = embeddings_model.tokenize_and_pad_text(text_train, tags_train)
     train_dataset = Dataset(tokens_train_padded, tags_train_padded, attention_masks)

@@ -2,21 +2,22 @@ import nltk
 import torch
 from transformers import AutoTokenizer, AutoModel
 import numpy as np
-#from allennlp import Elmo
+from allennlp.modules.elmo import Elmo, batch_to_ids
 from abc import ABC, abstractmethod
+from torch.nn.utils.rnn import pad_sequence
+import os
+import settings
 
 #TODO dodati CNN charachter based embeddings
-#TODO dodati druge varijante labelinga (npr. BIOES)
 class Embedding(ABC):
-    def __init__(self, embedding_model_name, embeddings_path, dataset_name, max_len=256):
+    def __init__(self, embedding_model_name, dataset_name, max_len=256):
         self.dataset_name = dataset_name
-        self.embeddings_path = embeddings_path
         self.MAX_LEN = max_len
         self.embedding_model_name = embedding_model_name
         self.embedding_dim = None
 
     @staticmethod
-    def create(embedding_model_name, embeddings_path, dataset_name, max_len=256):
+    def create(embedding_model_name, dataset_name, max_len=256):
         '''
         Factory method to create an embedding model
         Args:
@@ -28,11 +29,11 @@ class Embedding(ABC):
             Embedding model instance or raises ValueError if the embedding model is not supported
         '''
         if embedding_model_name == 'bioBERT':
-            return Embedding_bioBERT(embedding_model_name, embeddings_path, dataset_name, max_len)
+            return Embedding_bioBERT(embedding_model_name, dataset_name, max_len)
         elif embedding_model_name == 'bioELMo':
-            pass #return Embedding_bioELMo(embedding_model_name, embeddings_path, dataset_name, max_len)
+            return Embedding_bioELMo(embedding_model_name, dataset_name, max_len)
         else:
-            raise ValueError(f"Embedding {embedding_model_name} not supported")
+            raise ValueError(f"Embedding {embedding_model_name} not supported, bioBERT and bioELMo are.")
         
     @abstractmethod
     def get_embedding(self, tokens):
@@ -43,8 +44,8 @@ class Embedding(ABC):
         pass
     
 class Embedding_bioBERT(Embedding):
-    def __init__(self, embedding_model_name, embeddings_path, dataset_name, max_len=256):
-        super(Embedding_bioBERT, self).__init__(embedding_model_name, embeddings_path, dataset_name, max_len)
+    def __init__(self, embedding_model_name, dataset_name, max_len=256):
+        super(Embedding_bioBERT, self).__init__(embedding_model_name, dataset_name, max_len)
         self.max_len = max_len
         self.embedding_dim = 768  # Dimensionality of BioBERT embeddings
         model_name = "dmis-lab/biobert-base-cased-v1.1"
@@ -109,7 +110,6 @@ class Embedding_bioBERT(Embedding):
             tokens: List of tokenized sequences
         Returns: 
             embeddings_list: List of BioBERT embeddings for a batch
-            attention_masks_list: List of attention masks for a batch
         '''
         self.bert.eval()
     
@@ -123,56 +123,56 @@ class Embedding_bioBERT(Embedding):
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences.  Embeddings and attention masks saved!")
 
-'''
+
 class Embedding_bioELMo(Embedding):
-    def __init__(self, embedding_model_name, embeddings_path, dataset_name, max_len=256):
-        super(Embedding_bioELMo, self).__init__(embedding_model_name, embeddings_path, dataset_name, max_len)
-        # Load BioELMo Model
-        #TODO provjetiti jel ovo radi, a mozda i fiksno skinuti tezine i options file dostupne na https://github.com/Andy-jqa/bioelmo?tab=readme-ov-file
-        options_file = "https://allennlp.s3.amazonaws.com/models/elmo/biomed_elmo_options.json"
-        weight_file = "https://allennlp.s3.amazonaws.com/models/elmo/biomed_elmo_weights.hdf5"
+    def __init__(self, embedding_model_name, dataset_name, max_len=256):
+        super(Embedding_bioELMo, self).__init__(embedding_model_name, dataset_name, max_len)
+        # skinute tezine i options file dostupne na https://github.com/Andy-jqa/bioelmo?tab=readme-ov-file
+        set_up_path = os.path.join(settings.EMBEDDINGS_PATH, "bioELMo_setup")
+        options_file = os.path.join(set_up_path, "biomed_elmo_options.json")
+        weight_file = os.path.join(set_up_path, "biomed_elmo_weights.hdf5")
         self.elmo = Elmo(options_file, weight_file, num_output_representations=1, dropout=0)
         self.embedding_dim = 1024  # Dimensionality of BioELMo embeddings
         self.max_len = max_len
         
-    def tokenize_and_pad_text(self, text):
-    #TODO dodati padding tu
-        return text''' #elmos tokenisation is words
+    def tokenize_and_pad_text(self, text, tags): #elmos tokenisation is words -> only padding required
+        sentences_list = [["".join(word) for word in line] for line in text]
+        tokenized_text = batch_to_ids(sentences_list)
 
-    #def get_embedding(self, tokens, attention_masks):  
-'''
-        Get BioELMo embeddings and attention masks tensors with dimensions (batch_size, max_len, embedding_dim) and (batch_size, max_len)  for a list of tokens
-        Attention masks are used to differentiate between real tokens and padding tokens.
+        tensor_tags = [torch.tensor(t) for t in tags]        
+
+        tokens_padded = pad_sequence(tokenized_text, batch_first=True, padding_value=0)
+        tags_padded = pad_sequence(tensor_tags, batch_first=True, padding_value=-1)      
+
+        padding_mask = torch.where(tags_padded != -1, 1, 0)  
+
+        return tokens_padded, tags_padded, padding_mask  
+
+    def get_embedding(self, tokens, attention_masks):  
+        '''
+        Get BioELMo embeddings for a list of tokens
+        Attention masks are not used for ELMo embedding
         Args:
             tokens: List of tokens
         Returns: 
             embeddings_list: List of BioELMo embeddings
-            attention_masks_list: List of attention masks
-'''
-'''
+        '''
         self.elmo.eval() 
-        # Store sentence embeddings
-        embeddings_list = []
-        attention_masks_list = []
-        sentences = []
-
-        # Process each line in dataset
-        for token, attn_mask in zip(tokens, attention_masks):  
-            # Split into multiple sentences
-            sentences.append(" ".join(token))
-            attention_masks_list.append(attention_mask)
-            
-        # Tokenize each sentence
-        tokenized_sentences = [nltk.word_tokenize(sent) for sent in sentences]
-            
-        # Convert to BioELMo embeddings
-        character_ids = self.elmo.batch_to_ids(tokenized_sentences)  # Convert tokens to ELMo format
+        print(tokens.shape)
         with torch.no_grad():
-            embeddings = self.elmo(character_ids)["elmo_representations"][0]  # Get token-level embeddings
+            elmo_output = self.elmo(tokens)
 
-        #return embeddings_list #, sentence_list
+            embeddings = elmo_output["elmo_representations"]
+            mask = elmo_output["mask"]
+
+            #print("emb ", embeddings.shape)  # torch.Size([1, 32, 123, 1024])
+            #print(mask.shape)  # torch.Size([32, 123])
+            
+            embeddings = embeddings * mask.unsqueeze(0).unsqueeze(3)  # Apply mask along token dimension
+
+            return embeddings[0] # Removing the first dimension since it is 1
+        
         # Save embeddings
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_embeddings.npy", embeddings_list)
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
-        return torch.stack(embeddings_list), torch.stack(attention_masks_list) '''

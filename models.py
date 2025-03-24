@@ -1,5 +1,4 @@
 import torch
-import transformers
 import torch.nn as nn
 from TorchCRF import CRF
 

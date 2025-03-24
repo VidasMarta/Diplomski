@@ -1,6 +1,5 @@
 import argparse
 import copy
-import yaml
 import os
 import models
 from preprocessing import Embedding
@@ -69,6 +68,7 @@ def validate(model, data_loader, embeddings_model, device):
 
 
 def train(model_name, model_args, num_tags, train_dataset, valid_dataset, embeddings_model, device):
+    print("Started training")
     max_grad_norm = model_args['max_grad_norm']
     # Create models
     model = models.BiRNN_CRF(num_tags, model_args, embeddings_model.embedding_dim)
@@ -143,16 +143,14 @@ def main():
     
     max_len = get_max_len(text_train, text_val, text_test)
 
-    embeddings_model = Embedding.create('bioBERT',
-                                settings.EMBEDDINGS_PATH, 
-                                dataset_loader.dataset_name, max_len)
+    embeddings_model = Embedding.create('bioELMo', dataset_loader.dataset_name, max_len) #bioBERT
     
-    #tokens_train_padded, tags_train_padded, attention_masks_train = embeddings_model.tokenize_and_pad_text(text_train, tags_train)
-    #train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)
-    #tokens_val_padded, tags_val_padded, attention_masks_val = embeddings_model.tokenize_and_pad_text(text_val, tags_val)
-    #val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
+    tokens_train_padded, tags_train_padded, attention_masks_train = embeddings_model.tokenize_and_pad_text(text_train, tags_train)
+    train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)
+    tokens_val_padded, tags_val_padded, attention_masks_val = embeddings_model.tokenize_and_pad_text(text_val, tags_val)
+    val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
 
-    #train(model_name, model_args, num_tags, train_data, val_data, embeddings_model, device)
+    train(model_name, model_args, num_tags, train_data, val_data, embeddings_model, device)
 
     #Evaluate on test set
     tokens_test_padded, tags_test_padded, attention_masks_test = embeddings_model.tokenize_and_pad_text(text_test, tags_test)

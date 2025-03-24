@@ -1,15 +1,8 @@
-import os
-import seqeval.metrics
-import yaml
-import datasets
-import models
-from settings import Settings
 import torch
 #from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, f1_score
 import numpy as np
 import matplotlib.pyplot as plt
 import seqeval
-from itertools import chain
 
 
 # TODO: mozda koristiti seqval (https://github.com/chakki-works/seqeval/tree/master) za evaluaciju
