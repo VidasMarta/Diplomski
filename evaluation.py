@@ -1,3 +1,4 @@
+import seqeval.metrics
 import torch
 #from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, f1_score
 import numpy as np
@@ -61,7 +62,7 @@ class Evaluation:
 
             # Predicted tags already have no padding, so just map them to strings
             predicted_string_tags = [[num_to_tag_dict[int(t)] for t in seq] for seq in all_pred_tags]
-
+            
             print(seqeval.metrics.classification_report(unpadded_true_string_tags, predicted_string_tags, scheme=self.tagging_scheme))
  
             print(f"Test Loss = {final_loss / len(data_loader)}")

@@ -158,19 +158,18 @@ class Embedding_bioELMo(Embedding):
             embeddings_list: List of BioELMo embeddings
         '''
         self.elmo.eval() 
-        print(tokens.shape)
         with torch.no_grad():
             elmo_output = self.elmo(tokens)
 
-            embeddings = elmo_output["elmo_representations"]
+            embeddings = elmo_output["elmo_representations"][0] # Removing the first dimension since it is 1
             mask = elmo_output["mask"]
 
-            #print("emb ", embeddings.shape)  # torch.Size([1, 32, 123, 1024])
+            #print("emb ", embeddings.shape)  # torch.Size([32, 123, 1024])
             #print(mask.shape)  # torch.Size([32, 123])
             
-            embeddings = embeddings * mask.unsqueeze(0).unsqueeze(3)  # Apply mask along token dimension
+            embeddings = embeddings * mask.unsqueeze(-1)  # Apply mask along token dimension
 
-            return embeddings[0] # Removing the first dimension since it is 1
+            return embeddings 
         
         # Save embeddings
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_embeddings.npy", embeddings_list)

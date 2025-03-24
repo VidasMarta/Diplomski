@@ -150,7 +150,7 @@ def main():
     tokens_val_padded, tags_val_padded, attention_masks_val = embeddings_model.tokenize_and_pad_text(text_val, tags_val)
     val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
 
-    train(model_name, model_args, num_tags, train_data, val_data, embeddings_model, device)
+    #train(model_name, model_args, num_tags, train_data, val_data, embeddings_model, device)
 
     #Evaluate on test set
     tokens_test_padded, tags_test_padded, attention_masks_test = embeddings_model.tokenize_and_pad_text(text_test, tags_test)
