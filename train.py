@@ -145,8 +145,9 @@ def main():
     num_to_tag = dict((v,k) for k,v in tag_to_num.items())
     
     max_len = get_max_len(text_train, text_val, text_test)
-
-    embeddings_model = Embedding.create('bioELMo', dataset_loader.dataset_name, max_len) #bioBERT
+    
+    word_embedding = settings_args['word_embedding']
+    embeddings_model = Embedding.create(word_embedding, dataset_loader.dataset_name, max_len) 
     
     tokens_train_padded, tags_train_padded, attention_masks_train = embeddings_model.tokenize_and_pad_text(text_train, tags_train)
     train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)

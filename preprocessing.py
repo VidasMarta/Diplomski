@@ -1,14 +1,11 @@
-import nltk
 import torch
 from transformers import AutoTokenizer, AutoModel
-import numpy as np
 from allennlp.modules.elmo import Elmo, batch_to_ids
 from abc import ABC, abstractmethod
 from torch.nn.utils.rnn import pad_sequence
 import os
 import settings
 
-#TODO dodati CNN charachter based embeddings
 class Embedding(ABC):
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
         self.dataset_name = dataset_name

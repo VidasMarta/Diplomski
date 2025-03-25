@@ -3,7 +3,7 @@ import torch.nn as nn
 from TorchCRF import CRF
 
 class BiRNN_CRF(nn.Module):
-    def __init__(self, num_tag, model_args, embedding_dim):
+    def __init__(self, num_tag, model_args, embedding_dim): #TODO: embedding_dim more biti zbroj dimenzija word i char embeddinga
         super(BiRNN_CRF, self).__init__()
         self.num_tag = num_tag
 
@@ -36,7 +36,7 @@ class BiRNN_CRF(nn.Module):
                 raise ValueError(f"Loss {model_args['loss']} not supported")
     
     # Return the loss only, does not decode tags
-    def forward(self, embedding, target_tag, attention_masks): 
+    def forward(self, embedding, target_tag, attention_masks): #TODO: add char_embedding
         '''
         Forward pass of the model, computes the loss 
         Args:
@@ -47,6 +47,7 @@ class BiRNN_CRF(nn.Module):
         Returns:
             loss: Loss value of crf or cross entropy, if crf is used, the loss is token mean
         '''
+        #embedding = torch.cat((word_embedding, char_embedding), dim=1) #spojiti embeddinge
         h, _ = self.rnn(embedding)
 
         o_tag = self.dropout_tag(h)
@@ -60,7 +61,7 @@ class BiRNN_CRF(nn.Module):
         
         return loss
 
-    def predict(self, embedding, attention_masks):
+    def predict(self, embedding, attention_masks): #TODO: add char_embedding
         '''
         Predict the most likely tag sequence
         Args:
@@ -69,6 +70,7 @@ class BiRNN_CRF(nn.Module):
         Returns:    
             tag: Predicted tag tensor with dimensions (batch_size, max_len)
         '''
+        #embedding = torch.cat((word_embedding, char_embedding), dim=1) #spojiti embeddinge
         h, _ = self.rnn(embedding)
 
         o_tag = self.dropout_tag(h)
