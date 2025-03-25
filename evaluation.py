@@ -10,10 +10,8 @@ import seqeval
 class Evaluation:
     def __init__(self, tagging_scheme = 'IOB1'):
         self.tagging_scheme = tagging_scheme
-
     
-
-    def evaluate(self, data_loader, model, device, embeddings_model, num_to_tag_dict): #, loss_logger, log_file_name, epoch = 0, test=False):
+    def evaluate(self, data_loader, model, device, embeddings_model, num_to_tag_dict, logger, epoch = -1):
         '''
         Evaluate the model on the test set
         Args:
@@ -21,8 +19,11 @@ class Evaluation:
             model: Model object
             device: Device to run the model on
             embeddings_model: Embedding object
-            test: set True if test data evaluation, default=False
+            num_to_tag_dict: dictionary containing encoded int tags as keys and labels as values
+            logger: for logging losses and metrics
+            epoch: if test set use default -1
         '''
+        
         model = model.to(device)    
         model.eval()  # Set model to evaluation mode
         all_true_tags = []
@@ -53,21 +54,25 @@ class Evaluation:
                 all_true_tags.extend(unpadded_true_tags) 
                 all_pred_tags.extend(pred_tags)
 
-            # save to log file
-            #loss_logger.log_losses(file_name=log_file_name, epoch=epoch, loss=final_loss/len(data_loader), 
-            #                       f1_score = f1_score(y_true=all_true_tags, y_pred=all_pred_tags, average='micro'))
-            
             #for seqeval tags have to be strings
             unpadded_true_string_tags = [[num_to_tag_dict[int(t)] for t in seq] for seq in all_true_tags]
 
             # Predicted tags already have no padding, so just map them to strings
             predicted_string_tags = [[num_to_tag_dict[int(t)] for t in seq] for seq in all_pred_tags]
+
+            f1_score = seqeval.metrics.f1_score(unpadded_true_string_tags, predicted_string_tags, average='micro', scheme=self.tagging_scheme)
+            loss = final_loss/len(data_loader)
+
+            if epoch == -1: #test set
+                precision = seqeval.metrics.precision_score(unpadded_true_string_tags, predicted_string_tags, average='micro', scheme=self.tagging_scheme)
+                recall = seqeval.metrics.recall_score(unpadded_true_string_tags, predicted_string_tags, average='micro', scheme=self.tagging_scheme)
+                logger.log_test_results(loss, f1_score, precision, recall)
+
+                print(seqeval.metrics.classification_report(unpadded_true_string_tags, predicted_string_tags, scheme=self.tagging_scheme))
+                print(f"Test Loss = {loss}")
             
-            print(seqeval.metrics.classification_report(unpadded_true_string_tags, predicted_string_tags, scheme=self.tagging_scheme))
- 
-            print(f"Test Loss = {final_loss / len(data_loader)}")
-            '''print(classification_report(all_true_tags, all_pred_tags)) #, labels=list(self.tags.values()), target_names=list(self.tags.keys())))
-            cm = confusion_matrix(all_true_tags, all_pred_tags)
-            disp = ConfusionMatrixDisplay(confusion_matrix=cm) #, display_labels=list(self.tags.keys()))
-            disp.plot()
-            plt.show()'''
+            else:
+                logger.log_loss_and_metrics(epoch, loss, f1_score)
+
+        
+        

@@ -1,16 +1,28 @@
 import os
 
-class LossLogger:
+class Logger:
     def __init__(self, model_logs_path):
         self.output_path = model_logs_path
-        if not os.path.exists(model_logs_path):
+        if not os.path.exists(self.output_path):
             os.mkdir(model_logs_path)
 
-        open(model_logs_path+'/train.log',"w").close()
-        open(model_logs_path+'/valid.log',"w").close()
-        open(model_logs_path+'/test.log',"w").close()
+        open(self.output_path+'/train.log',"w").close()
+        open(self.output_path+'/valid.log',"w").close()
+        open(self.output_path+'/test.log',"w").close()
 
-    def log_losses(self, file_name, epoch, loss, f1_score):
-        log_file = open(self.model_logs_path+'/'+file_name,"a")
-        log_file.write(str(epoch) + ',' + str(loss) + ',' + ',' + str(f1_score) + '\n')
+    def log_test_results(self, loss, f1_score, precision, recall):
+        log_file = open(self.output_path + '/test.log',"a")
+        log_file.write(f"loss: {loss}, f1_score: {f1_score}, precison: {precision}, recall:{recall}")
         log_file.close()
+
+    def log_val_results(self, epoch, loss, f1_score):
+        log_file = open(self.output_path + '/valid.log',"a")
+        log_file.write(f"epoch: {epoch}, loss: {loss}, f1_score: {f1_score}")
+        log_file.close()
+
+    def log_train_loss(self, epoch, loss):
+        log_file = open(self.output_path + 'train.log', "a")
+        log_file.write(f"epoch: {epoch}, loss: {loss}")
+        log_file.close()
+
+

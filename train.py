@@ -12,7 +12,7 @@ import settings
 from datasets import *
 from torch.nn.utils import clip_grad_norm_
 import numpy as np
-from utils.logger import LossLogger
+from utils.logger import Logger
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Training script")
@@ -67,7 +67,7 @@ def validate(model, data_loader, embeddings_model, device):
     return final_loss / len(data_loader)
 
 
-def train(model_name, model_args, num_tags, train_dataset, valid_dataset, embeddings_model, device):
+def train(model_name, model_args, num_tags, train_dataset, valid_dataset, embeddings_model, device, num_to_tag, eval, logger):
     print("Started training")
     max_grad_norm = model_args['max_grad_norm']
     # Create models
@@ -89,14 +89,14 @@ def train(model_name, model_args, num_tags, train_dataset, valid_dataset, embedd
     epochs_no_improve = 0
     min_delta = float(model_args['min_delta'])
 
-    loss_logger = LossLogger(os.path.join(settings.LOG_PATH, model_name))
-
     for epoch in range(num_epochs):
         train_loss = train_one_epoch(model, data_loader, embeddings_model, optimizer, device, max_grad_norm)
+        logger.log_train_loss(epoch+1, train_loss)
         torch.cuda.empty_cache()
 
         # Validation
         val_loss = validate(model, valid_data_loader, embeddings_model, device)
+        eval.evaluate(valid_data_loader, model, device, embeddings_model, num_to_tag, logger, epoch+1)
         torch.cuda.empty_cache()
 
         # Early stopping
@@ -110,9 +110,10 @@ def train(model_name, model_args, num_tags, train_dataset, valid_dataset, embedd
             if epochs_no_improve >= patience:
                 print(f"Early stopping triggered after {epoch+1} epochs.")
                 break
-        #TODO dodati da se sprema u neki output file 
-        print(f"Train Loss ({epoch+1}/{num_epochs}) = {train_loss}")
-        print(f"Validation Loss ({epoch+1}/{num_epochs}) = {val_loss}")
+        
+        if epoch%10 == 0:
+            print(f"Train Loss ({epoch+1}/{num_epochs}) = {train_loss}")
+            print(f"Validation Loss ({epoch+1}/{num_epochs}) = {val_loss}")
 
     # Save the best model
     best_model.load_state_dict(best_model_weights)
@@ -124,10 +125,12 @@ def main():
     model_name = args.model_name
     model_args, settings_args = settings.Settings(args.config)
     
-    # Add your training code here
     print("Training with the following settings:")
     print("Model Args:", model_args)
     print("Settings Args:", settings_args)
+
+    logger = Logger(os.path.join(settings.LOG_PATH, model_name))
+    eval = Evaluation(settings_args["tagging_scheme"])
 
     if torch.cuda.is_available():
         device = 'cuda'
@@ -150,7 +153,7 @@ def main():
     tokens_val_padded, tags_val_padded, attention_masks_val = embeddings_model.tokenize_and_pad_text(text_val, tags_val)
     val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
 
-    #train(model_name, model_args, num_tags, train_data, val_data, embeddings_model, device)
+    train(model_name, model_args, num_tags, train_data, val_data, embeddings_model, device, num_to_tag, eval, logger)
 
     #Evaluate on test set
     tokens_test_padded, tags_test_padded, attention_masks_test = embeddings_model.tokenize_and_pad_text(text_test, tags_test)
@@ -160,8 +163,7 @@ def main():
     best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
     best_model = models.BiRNN_CRF(num_tags, model_args, embeddings_model.embedding_dim) 
     best_model.load_state_dict(best_model_weights)
-    eval = Evaluation(settings_args["tagging_scheme"])
-    eval.evaluate(test_data_loader, best_model, device, embeddings_model, num_to_tag)
+    eval.evaluate(test_data_loader, best_model, device, embeddings_model, num_to_tag, logger)
     
 if __name__ == "__main__":
     main()
