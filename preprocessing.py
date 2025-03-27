@@ -2,11 +2,9 @@ import torch
 from transformers import AutoTokenizer, AutoModel
 from allennlp.modules.elmo import Elmo, batch_to_ids
 from abc import ABC, abstractmethod
-from torch.nn.utils.rnn import pad_sequence
 import os
 import settings
 import torch.nn as nn
-from torch.nn.functional import pad
 
 class Embedding(ABC): #For word embeddings
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
@@ -133,15 +131,23 @@ class Embedding_bioELMo(Embedding):
         self.elmo = Elmo(options_file, weight_file, num_output_representations=1, dropout=0)
         self.embedding_dim = 1024  # Dimensionality of BioELMo embeddings
         self.max_len = max_len
+
+    
+    def _pad_or_truncate(self, seq, pad, pad_value):
+        if seq.size(0) < self.max_len:
+            return nn.functional.pad(input=seq, pad=pad, value=pad_value)
+        else:
+            return seq[:self.max_len]
+
         
-    def tokenize_and_pad_text(self, text, tags): #elmos tokenisation is words -> only padding required
+    def tokenize_and_pad_text(self, text, tags): 
         sentences_list = [["".join(word) for word in line] for line in text]
         tokenized_text = batch_to_ids(sentences_list)
 
-        tensor_tags = [torch.tensor(t) for t in tags]        
+        tensor_tags = [torch.tensor(t) for t in tags] 
 
-        tokens_padded = pad_sequence(tokenized_text, batch_first=True, padding_value=0)
-        tags_padded = pad_sequence(tensor_tags, batch_first=True, padding_value=-1)      
+        tokens_padded = torch.stack([self._pad_or_truncate(seq, (0, 0, 0, self.max_len - seq.shape[0]), 0) for seq in tokenized_text])    
+        tags_padded = torch.stack([self._pad_or_truncate(seq, (0, self.max_len - seq.shape[0]), -1) for seq in tensor_tags])         
 
         padding_mask = torch.where(tags_padded != -1, 1, 0)  
 
@@ -209,7 +215,7 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
                 for word in words:
                     idx_representation = [char_to_idx_map.get(char, unk_index) for char in word] 
                     ohe_representation = ohe_characters[idx_representation].T # Shape: (vocab_size, word_length)
-                    padded_ohe_representation = pad(ohe_representation, (0, max_word_length-len(word)))
+                    padded_ohe_representation = nn.functional.pad(input=ohe_representation, pad=(0, max_word_length-len(word)))
                     ohe_words = torch.cat((ohe_words, padded_ohe_representation.unsqueeze(dim=0))) #Shape: (num_words, vocab_size, max_word_length)
 
                 if len(ohe_words) > max_sentence_length:

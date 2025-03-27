@@ -71,8 +71,8 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
     min_delta = float(model_args['min_delta'])
 
     for epoch in range(num_epochs):
-        train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
-        logger.log_train_loss(epoch+1, train_loss)
+        #train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
+        #logger.log_train_loss(epoch+1, train_loss)
         #torch.cuda.empty_cache()
 
         # Validation
@@ -147,6 +147,7 @@ def main():
     
     tokens_train_padded, tags_train_padded, attention_masks_train = word_embeddings_model.tokenize_and_pad_text(text_train, tags_train)
     train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)
+    print("Val")
     tokens_val_padded, tags_val_padded, attention_masks_val = word_embeddings_model.tokenize_and_pad_text(text_val, tags_val)
     val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
 
