@@ -87,7 +87,8 @@ class BiRNN_CRF(nn.Module):
         if self.crf_tag:
             #mask = torch.squeeze(attention_masks, -2).bool()
             mask = attention_masks.bool()
-            tag = self.crf_tag.viterbi_decode(tag, mask)
+            tags = self.crf_tag.viterbi_decode(tag, mask)
+            tag = [[torch.tensor(t) for t in tag] for tag in tags]
         else:
             tag = torch.argmax(tag, dim=-1)
 

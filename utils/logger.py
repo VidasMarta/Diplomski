@@ -21,7 +21,7 @@ class Logger:
         log_file.close()
 
     def log_train_loss(self, epoch, loss):
-        log_file = open(self.output_path + 'train.log', "a")
+        log_file = open(self.output_path + '/train.log', "a")
         log_file.write(f"epoch: {epoch}, loss: {loss}")
         log_file.close()
 

@@ -41,17 +41,10 @@ class Evaluation:
                 loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
                 final_loss += loss.item()
 
-                pred_tags = model.predict(batch_embeddings, batch_attention_masks, char_embedding)
+                pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding)
 
                 # Remove padding only from true tags 
                 unpadded_true_tags = [[t for t in seq if int(t) != -1] for seq in tags]
-                tokenss = [[t for t,m in zip(tok, mask) if m] for tok, mask in zip(tokens, att_mask)]
-
-                for true, pred, tok in zip(unpadded_true_tags, pred_tags, tokenss):
-                    if len(true) != len(pred):
-                        print(f"Inconsistent: {len(true)} and {len(pred)}, tokens len: {len(tok)}")
-                        print(true)
-                        print(pred)
 
                 all_true_tags.extend(unpadded_true_tags) 
                 all_pred_tags.extend(pred_tags)
@@ -74,7 +67,9 @@ class Evaluation:
                 print(f"Test Loss = {loss}")
             
             else:
-                logger.log_loss_and_metrics(epoch, loss, f1_score)
+                logger.log_val_results(epoch, loss, f1_score)
+            
+            return loss
 
         
         

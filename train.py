@@ -52,23 +52,6 @@ def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, 
         final_loss += loss.item()
     return final_loss / len(data_loader)
 
-def validate(model, data_loader, word_embeddings_model, char_embeddings, device):
-    model.eval()  # Set model to evaluation mode
-    with torch.no_grad():
-        final_loss = 0
-        for (tokens, tags, att_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
-            batch_embeddings = word_embeddings_model.get_embedding(tokens, att_mask)
-            batch_embeddings = batch_embeddings.to(device)
-            batch_attention_masks = att_mask.to(device)
-            batch_char_embedding = char_embedding.to(device)
-            batch_tags = tags.to(device)
-            
-
-            loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
-            final_loss += loss.item()
-    return final_loss / len(data_loader)
-
-
 def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, word_embeddings_model, train_char_embeddings, val_char_embeddings, device, num_to_tag, eval, logger):
     print("Started training")
     max_grad_norm = model_args['max_grad_norm']
@@ -90,12 +73,11 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
     for epoch in range(num_epochs):
         train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
         logger.log_train_loss(epoch+1, train_loss)
-        torch.cuda.empty_cache()
+        #torch.cuda.empty_cache()
 
         # Validation
-        val_loss = validate(model, valid_data_loader, word_embeddings_model, val_char_embeddings, device)
-        eval.evaluate(valid_data_loader, model, device, word_embeddings_model, val_char_embeddings, num_to_tag, logger, epoch+1)
-        torch.cuda.empty_cache()
+        val_loss = eval.evaluate(valid_data_loader, model, device, word_embeddings_model, val_char_embeddings, num_to_tag, logger, epoch+1)
+        #torch.cuda.empty_cache()
 
         # Early stopping
         if val_loss + min_delta < best_loss:
