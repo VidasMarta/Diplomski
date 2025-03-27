@@ -3,7 +3,6 @@ import os
 from preprocessing import Embedding
 import settings
 import torch
-from torch.nn.utils.rnn import pad_sequence
 
 MAX_LEN = 256
 
@@ -71,11 +70,11 @@ class Dataset:
             self.attention_masks[idx]
         )
 
-def get_max_len(text_train, text_val, text_test):
-    train_max_len = max(len(sublist) for sublist in text_train)
-    val_max_len = max(len(sublist) for sublist in text_val)
-    test_max_len = max(len(sublist) for sublist in text_test)
-    max_len = max(train_max_len, val_max_len, test_max_len)
+def get_max_len(text_train): #, text_val, text_test):
+    max_len = max(len(sublist) for sublist in text_train)#train_max_len = max(len(sublist) for sublist in text_train)
+    #val_max_len = max(len(sublist) for sublist in text_val)
+    #test_max_len = max(len(sublist) for sublist in text_test)
+    #max_len = max(train_max_len, val_max_len, test_max_len)
     return min(max_len, MAX_LEN)
 
 '''

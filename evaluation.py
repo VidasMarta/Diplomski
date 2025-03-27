@@ -1,3 +1,4 @@
+import itertools
 import seqeval.metrics
 import torch
 #from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, f1_score
@@ -11,7 +12,7 @@ class Evaluation:
     def __init__(self, tagging_scheme = 'IOB1'):
         self.tagging_scheme = tagging_scheme
     
-    def evaluate(self, data_loader, model, device, embeddings_model, num_to_tag_dict, logger, epoch = -1):
+    def evaluate(self, data_loader, model, device, word_embeddings_model, char_embeddings, num_to_tag_dict, logger, epoch = -1):
         '''
         Evaluate the model on the test set
         Args:
@@ -30,16 +31,17 @@ class Evaluation:
         all_pred_tags = []
         with torch.no_grad():
             final_loss = 0
-            for tokens, tags, att_mask in data_loader: # tqdm(data_loader, total=len(data_loader)):
-                batch_embeddings = embeddings_model.get_embedding(tokens, att_mask)
+            for (tokens, tags, att_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
+                batch_embeddings = word_embeddings_model.get_embedding(tokens, att_mask)
                 batch_embeddings = batch_embeddings.to(device)
                 batch_attention_masks = att_mask.to(device)
+                batch_char_embedding = char_embedding.to(device)
                 batch_tags = tags.to(device)
 
-                loss = model(batch_embeddings, batch_tags, batch_attention_masks)
+                loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
                 final_loss += loss.item()
 
-                pred_tags = model.predict(batch_embeddings, batch_attention_masks)
+                pred_tags = model.predict(batch_embeddings, batch_attention_masks, char_embedding)
 
                 # Remove padding only from true tags 
                 unpadded_true_tags = [[t for t in seq if int(t) != -1] for seq in tags]

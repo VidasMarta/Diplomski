@@ -5,8 +5,10 @@ from abc import ABC, abstractmethod
 from torch.nn.utils.rnn import pad_sequence
 import os
 import settings
+import torch.nn as nn
+from torch.nn.functional import pad
 
-class Embedding(ABC):
+class Embedding(ABC): #For word embeddings
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
         self.dataset_name = dataset_name
         self.MAX_LEN = max_len
@@ -172,3 +174,57 @@ class Embedding_bioELMo(Embedding):
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_embeddings.npy", embeddings_list)
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
+
+
+class CharEmbeddingCNN(nn.Module): #For char embeddings
+    def __init__(self, input_len, embed_size, kernel_size, max_length): #, args, number_of_classes):
+        super(CharEmbeddingCNN, self).__init__()
+
+        self.seq = nn.Sequential(
+            nn.Conv1d(in_channels=input_len, out_channels=embed_size, kernel_size=kernel_size, bias=False),
+            nn.Tanh(),
+            nn.MaxPool1d(kernel_size=max_length-kernel_size+1)
+        )
+
+    def forward(self, x):
+        return self.seq(x).squeeze()
+
+    @staticmethod    
+    # preraden kod s https://www.kaggle.com/code/anubhavchhabra/character-level-word-embeddings-using-1d-cnn
+    def batch_cnn_embedding_generator(text, vocab, batch_size, emb_size,  kernel_size, max_sentence_length, max_word_length):    
+        vocab += "<UNK>"
+
+        model = CharEmbeddingCNN(len(vocab), emb_size, kernel_size, max_word_length)
+            
+        char_to_idx_map = {char: idx for idx, char in enumerate(vocab)}
+        unk_index = len(vocab) - 1 
+
+        ohe_characters = torch.eye(n=len(vocab))
+
+        for i in range(0, len(text), batch_size):
+            batch_sentences = text[i:i + batch_size]
+            batch_embeddings = []
+            for words in batch_sentences:
+                ohe_words = torch.empty(size=(0, len(vocab), max_word_length))
+                for word in words:
+                    idx_representation = [char_to_idx_map.get(char, unk_index) for char in word] 
+                    ohe_representation = ohe_characters[idx_representation].T # Shape: (vocab_size, word_length)
+                    padded_ohe_representation = pad(ohe_representation, (0, max_word_length-len(word)))
+                    ohe_words = torch.cat((ohe_words, padded_ohe_representation.unsqueeze(dim=0))) #Shape: (num_words, vocab_size, max_word_length)
+
+                if len(ohe_words) > max_sentence_length:
+                    ohe_words = ohe_words[:max_sentence_length]
+                elif 0 < len(ohe_words) < max_sentence_length:
+                    ohe_words = torch.cat((
+                        ohe_words, 
+                        torch.zeros((max_sentence_length - len(ohe_words), len(vocab), max_word_length)))
+                    )
+                elif len(ohe_words) == 0:
+                    ohe_words = torch.zeros(max_sentence_length, len(vocab))
+
+                embedding = model(ohe_words)
+                batch_embeddings.append(embedding) 
+
+            batch_embeddings = torch.stack(batch_embeddings)
+
+            yield batch_embeddings
