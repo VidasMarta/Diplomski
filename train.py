@@ -94,7 +94,7 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
 
         # Validation
         val_loss = validate(model, valid_data_loader, word_embeddings_model, val_char_embeddings, device)
-        eval.evaluate(valid_data_loader, model, device, word_embeddings_model, num_to_tag, logger, epoch+1)
+        eval.evaluate(valid_data_loader, model, device, word_embeddings_model, val_char_embeddings, num_to_tag, logger, epoch+1)
         torch.cuda.empty_cache()
 
         # Early stopping
