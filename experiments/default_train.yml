@@ -5,7 +5,7 @@ model:
   num_layers: 2
   dropout: 0.3
   learning_rate: 0.001
-  batch_size: 2 #32
+  batch_size: 32
   use_crf: true  # Set to false if CRF is not used
   loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
   optimizer: "adam"  # Options: "adam", "sgd", "rmsprop", "adamw"
@@ -21,7 +21,7 @@ settings:
   char_cnn_embedding: true #if false, ignore cnn_* settings
   cnn_vocab: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #
   cnn_max_word_len: 7 
-  cnn_embedding_dim: 8 #256
+  cnn_embedding_dim: 256
   cnn_embedding_kernel_size: 3
   dataset: "ncbi_disease_json" # Other option: "bc5cdr_json"
   tagging_scheme : "IOB1" #Other options: IOBES (depends on how the dataset is tagged)
