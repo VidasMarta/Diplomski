@@ -116,6 +116,7 @@ def main():
 
     if torch.cuda.is_available():
         device = 'cuda'
+        print("Using cuda")
     else:
         device = 'cpu'
     
