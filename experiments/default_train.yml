@@ -9,7 +9,7 @@ model:
   use_crf: true  # Set to false if CRF is not used
   loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
   optimizer: "adam"  # Options: "adam", "sgd", "rmsprop", "adamw"
-  epochs: 1 #10
+  epochs: 1 #100
   max_length: 256
   max_grad_norm: 5.0
   early_stopping: 5

@@ -71,8 +71,8 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
     min_delta = float(model_args['min_delta'])
 
     for epoch in range(num_epochs):
-        #train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
-        #logger.log_train_loss(epoch+1, train_loss)
+        train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
+        logger.log_train_loss(epoch+1, train_loss)
         #torch.cuda.empty_cache()
 
         # Validation
@@ -119,6 +119,7 @@ def main():
         print("Using cuda")
     else:
         device = 'cpu'
+        print("Using cpu")
     
     dataset_loader = DatasetLoader("ncbi_disease_json", settings.DATA_PATH)
     tag_to_num, (text_train, tags_train), (text_val, tags_val), (text_test, tags_test) = dataset_loader.load_data()
