@@ -17,7 +17,7 @@ from utils.logger import Logger
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Training script")
-    parser.add_argument('--config', type=str, required=False, help='Path to the config file', default='/home/martavidas/Documents/FER/Diplomski/Diplomski/experiments/default_train.yml')    
+    parser.add_argument('--config', type=str, required=False, help='Path to the config file', default='/lustre/home/mvidas/Diplomski/experiments/default_train.yml')    
     parser.add_argument('--model_name', type=str, required=False, help='Name of the file used for saving model weights', default='bilstm_crf')    
     return parser.parse_args()
 
