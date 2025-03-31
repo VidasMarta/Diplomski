@@ -35,7 +35,10 @@ class Evaluation:
                 batch_embeddings = word_embeddings_model.get_embedding(tokens, att_mask)
                 batch_embeddings = batch_embeddings.to(device)
                 batch_attention_masks = att_mask.to(device)
-                batch_char_embedding = char_embedding.to(device)
+                if char_embedding != None:
+                    batch_char_embedding = char_embedding.to(device)
+                else:
+                    batch_char_embedding = None
                 batch_tags = tags.to(device)
 
                 loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
