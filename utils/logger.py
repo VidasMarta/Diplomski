@@ -12,7 +12,10 @@ class Logger:
         open(self.output_path+'/test.log',"w").close()
 
         log_config_file = open(self.output_path+'/config.log', "w")
-        log_config_file.write(json.dumps(model_args) + "\n" + json.dump(settings_args))
+        json.dump(model_args, log_config_file)
+        log_config_file.write("\n")
+        json.dump(settings_args, log_config_file)
+
         log_config_file.close()
 
 
