@@ -199,19 +199,17 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
         return self.seq(x).squeeze()
    
     # preraden kod s https://www.kaggle.com/code/anubhavchhabra/character-level-word-embeddings-using-1d-cnn
-    def batch_cnn_embedding_generator(self, text, max_sentence_length, batch_size):     
-        vocab += "<UNK>"
-            
-        char_to_idx_map = {char: idx for idx, char in enumerate(vocab)}
-        unk_index = len(vocab) - 1 
+    def batch_cnn_embedding_generator(self, text, max_sentence_length, batch_size):                 
+        char_to_idx_map = {char: idx for idx, char in enumerate(self.vocab)}
+        unk_index = len(self.vocab) - 1 
 
-        ohe_characters = torch.eye(n=len(vocab))
+        ohe_characters = torch.eye(n=len(self.vocab))
 
         for i in range(0, len(text), batch_size):
             batch_sentences = text[i:i + batch_size]
             batch_embeddings = []
             for words in batch_sentences:
-                ohe_words = torch.empty(size=(0, len(vocab), self.max_word_length))
+                ohe_words = torch.empty(size=(0, len(self.vocab), self.max_word_length))
                 for word in words:
                     idx_representation = [char_to_idx_map.get(char, unk_index) for char in word] 
                     ohe_representation = ohe_characters[idx_representation].T # Shape: (vocab_size, word_length)
@@ -223,10 +221,10 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
                 elif 0 < len(ohe_words) < max_sentence_length:
                     ohe_words = torch.cat((
                         ohe_words, 
-                        torch.zeros((max_sentence_length - len(ohe_words), len(vocab), self.max_word_length)))
+                        torch.zeros((max_sentence_length - len(ohe_words), len(self.vocab), self.max_word_length)))
                     )
                 elif len(ohe_words) == 0:
-                    ohe_words = torch.zeros(max_sentence_length, len(vocab))
+                    ohe_words = torch.zeros(max_sentence_length, len(self.vocab))
 
                 embedding = self.forward(ohe_words)
                 batch_embeddings.append(embedding) 
