@@ -111,7 +111,7 @@ def main():
 
     model_args['char_embedding_dim'] = None
 
-    logger = Logger(os.path.join(settings.LOG_PATH, model_name))
+    logger = Logger(os.path.join(settings.LOG_PATH, model_name), model_args, settings_args)
     eval = Evaluation(settings_args["tagging_scheme"])
 
     if torch.cuda.is_available():
@@ -149,7 +149,6 @@ def main():
     
     tokens_train_padded, tags_train_padded, attention_masks_train = word_embeddings_model.tokenize_and_pad_text(text_train, tags_train)
     train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)
-    print("Val")
     tokens_val_padded, tags_val_padded, attention_masks_val = word_embeddings_model.tokenize_and_pad_text(text_val, tags_val)
     val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
 

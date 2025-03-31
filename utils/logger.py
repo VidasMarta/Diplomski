@@ -1,7 +1,7 @@
 import os
 
 class Logger:
-    def __init__(self, model_logs_path):
+    def __init__(self, model_logs_path, model_args, settings_args):
         self.output_path = model_logs_path
         if not os.path.exists(self.output_path):
             os.mkdir(model_logs_path)
@@ -9,6 +9,11 @@ class Logger:
         open(self.output_path+'/train.log',"w").close()
         open(self.output_path+'/valid.log',"w").close()
         open(self.output_path+'/test.log',"w").close()
+
+        log_config_file = open(self.output_path+'/config.log', "w")
+        log_config_file.write(model_args + '\n' + settings_args)
+        log_config_file.close()
+
 
     def log_test_results(self, loss, f1_score, precision, recall):
         log_file = open(self.output_path + '/test.log',"a")
