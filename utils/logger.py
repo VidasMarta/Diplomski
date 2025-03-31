@@ -21,17 +21,17 @@ class Logger:
 
     def log_test_results(self, loss, f1_score, precision, recall):
         log_file = open(self.output_path + '/test.log',"a")
-        log_file.write(f"loss: {loss}, f1_score: {f1_score}, precison: {precision}, recall:{recall}")
+        log_file.write(f"loss: {loss}, f1_score: {f1_score}, precison: {precision}, recall:{recall} + \n")
         log_file.close()
 
     def log_val_results(self, epoch, loss, f1_score):
         log_file = open(self.output_path + '/valid.log',"a")
-        log_file.write(f"epoch: {epoch}, loss: {loss}, f1_score: {f1_score}")
+        log_file.write(f"epoch: {epoch}, loss: {loss}, f1_score: {f1_score}+ \n")
         log_file.close()
 
     def log_train_loss(self, epoch, loss):
         log_file = open(self.output_path + '/train.log', "a")
-        log_file.write(f"epoch: {epoch}, loss: {loss}")
+        log_file.write(f"epoch: {epoch}, loss: {loss}+ \n")
         log_file.close()
 
 
