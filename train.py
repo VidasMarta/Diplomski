@@ -145,12 +145,13 @@ def main():
         model_args['char_embedding_dim'] = char_emb_size
         char_kernel_size = settings_args['cnn_embedding_kernel_size']
         max_word_len = settings_args['cnn_max_word_len']
-        train_char_embeddings = CharEmbeddingCNN.batch_cnn_embedding_generator(text_train, vocab, batch_size, 
-                                                                                               char_emb_size, char_kernel_size, max_len, max_word_len)
-        val_char_embeddings = CharEmbeddingCNN.batch_cnn_embedding_generator(text_val, vocab, batch_size, 
-                                                                                               char_emb_size, char_kernel_size, max_len, max_word_len)
-        test_char_embeddings = CharEmbeddingCNN.batch_cnn_embedding_generator(text_test, vocab, batch_size, 
-                                                                                               char_emb_size, char_kernel_size, max_len, max_word_len)
+        #added list() so that the generator doesn't get exhausted after epoch -> not memory efficient anymore...
+        train_char_embeddings = list(CharEmbeddingCNN.batch_cnn_embedding_generator(text_train, vocab, batch_size, 
+                                                                                               char_emb_size, char_kernel_size, max_len, max_word_len))
+        val_char_embeddings = list(CharEmbeddingCNN.batch_cnn_embedding_generator(text_val, vocab, batch_size, 
+                                                                                               char_emb_size, char_kernel_size, max_len, max_word_len))
+        test_char_embeddings = list(CharEmbeddingCNN.batch_cnn_embedding_generator(text_test, vocab, batch_size, 
+                                                                                               char_emb_size, char_kernel_size, max_len, max_word_len))
         
 
     

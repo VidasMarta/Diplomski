@@ -32,9 +32,6 @@ class Evaluation:
         with torch.no_grad():
             final_loss = 0
             for (tokens, tags, att_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
-                print(f"Tokens shape: {tokens.shape}")
-                print(f"Tags shape: {tags.shape}")
-                print(f"Char Embedding: {char_embedding.shape if char_embedding is not None else None}")
                 batch_embeddings = word_embeddings_model.get_embedding(tokens, att_mask)
                 batch_embeddings = batch_embeddings.to(device)
                 batch_attention_masks = att_mask.to(device)
