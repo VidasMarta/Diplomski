@@ -1,4 +1,5 @@
 import os
+import json
 
 class Logger:
     def __init__(self, model_logs_path, model_args, settings_args):
@@ -11,8 +12,7 @@ class Logger:
         open(self.output_path+'/test.log',"w").close()
 
         log_config_file = open(self.output_path+'/config.log', "w")
-        log_config_file.write(model_args)
-        log_config_file.write(settings_args)
+        log_config_file.write(json.dumps(model_args) + "\n" + json.dump(settings_args))
         log_config_file.close()
 
 
