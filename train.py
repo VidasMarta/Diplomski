@@ -131,6 +131,10 @@ def main():
     word_embedding = settings_args['word_embedding']
     word_embeddings_model = Embedding.create(word_embedding, dataset_loader.dataset_name, max_len) 
 
+    train_char_embeddings = None
+    val_char_embeddings = None
+    test_char_embeddings = None
+
     batch_size = model_args['batch_size']
     if settings_args['char_cnn_embedding']:
         vocab = settings_args['cnn_vocab']
