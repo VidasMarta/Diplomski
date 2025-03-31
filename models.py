@@ -48,9 +48,6 @@ class BiRNN_CRF(nn.Module):
         Returns:
             loss: Loss value of crf or cross entropy, if crf is used, the loss is token mean
         '''
-        if (word_embedding.shape[1] != char_embedding.shape[1]):
-            print(word_embedding.shape)
-            print(char_embedding.shape)
         if char_embedding != None:
             embedding = torch.cat((word_embedding, char_embedding), dim=-1) #spojiti embeddinge
         else:
