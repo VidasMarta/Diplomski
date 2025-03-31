@@ -43,6 +43,15 @@ class Evaluation:
 
                 pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding)
 
+                for i, seq in enumerate(tags):
+                    if not isinstance(seq, list):
+                        print(f"Warning: tags[{i}] is not a list! It's {type(seq)} with shape {seq.shape if isinstance(seq, torch.Tensor) else 'N/A'}")
+
+                for i, seq in enumerate(pred_tags):
+                    if not isinstance(seq, list):
+                        print(f"Warning: pred_tags[{i}] is not a list! It's {type(seq)} with shape {seq.shape if isinstance(seq, torch.Tensor) else 'N/A'}")
+                    
+
                 # Remove padding only from true tags 
                 unpadded_true_tags = [[t for t in seq if int(t) != -1] for seq in tags]
 
