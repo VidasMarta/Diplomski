@@ -11,7 +11,8 @@ class Logger:
         open(self.output_path+'/test.log',"w").close()
 
         log_config_file = open(self.output_path+'/config.log', "w")
-        log_config_file.write(model_args + '\n' + settings_args)
+        log_config_file.write(model_args)
+        log_config_file.write(settings_args)
         log_config_file.close()
 
 
