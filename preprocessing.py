@@ -199,11 +199,13 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
         return self.seq(x).squeeze()
    
     # preraden kod s https://www.kaggle.com/code/anubhavchhabra/character-level-word-embeddings-using-1d-cnn
-    def batch_cnn_embedding_generator(self, text, max_sentence_length, batch_size):                 
+    def batch_cnn_embeddings(self, text, max_sentence_length, batch_size):                 
         char_to_idx_map = {char: idx for idx, char in enumerate(self.vocab)}
         unk_index = len(self.vocab) - 1 
 
         ohe_characters = torch.eye(n=len(self.vocab))
+
+        all_batches = []
 
         for i in range(0, len(text), batch_size):
             batch_sentences = text[i:i + batch_size]
@@ -231,4 +233,5 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
 
             batch_embeddings = torch.stack(batch_embeddings)
 
-            yield batch_embeddings
+            all_batches.append(batch_embeddings)
+        return all_batches
