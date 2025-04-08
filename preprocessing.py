@@ -234,4 +234,6 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
             batch_embeddings = torch.stack(batch_embeddings)
 
             all_batches.append(batch_embeddings)
+            
+        all_batches = torch.stack(all_batches)
         return all_batches
