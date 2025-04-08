@@ -56,7 +56,7 @@ def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, 
         final_loss += loss.item()
     return final_loss / len(data_loader)
 
-def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, word_embeddings_model,train_char_embeddings, val_char_embeddings, device, num_to_tag, eval, logger):
+def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, word_embeddings_model, char_emb, text_train, text_val, batch_size, device, num_to_tag, eval, logger):
     print("Started training")
     max_grad_norm = model_args['max_grad_norm']
     # Create models
@@ -75,6 +75,8 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
     min_delta = float(model_args['min_delta'])
 
     for epoch in range(num_epochs):
+        train_char_embeddings = char_emb.batch_cnn_embeddings(text_train, max_len, batch_size)
+        val_char_embeddings = char_emb.batch_cnn_embeddings(text_val, max_len, batch_size)
         train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
         logger.log_train_loss(epoch+1, train_loss)
         #torch.cuda.empty_cache()
@@ -147,8 +149,6 @@ def main():
         char_kernel_size = settings_args['cnn_embedding_kernel_size']
         max_word_len = settings_args['cnn_max_word_len']
         char_emb = CharEmbeddingCNN(vocab, char_emb_size, char_kernel_size, max_word_len)
-        train_char_embeddings = char_emb.batch_cnn_embeddings(text_train, max_len, batch_size)
-        val_char_embeddings = char_emb.batch_cnn_embeddings(text_val, max_len, batch_size)
         test_char_embeddings = char_emb.batch_cnn_embeddings(text_test, max_len, batch_size)
         
 
@@ -162,7 +162,7 @@ def main():
     valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
 
     train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
-        word_embeddings_model, train_char_embeddings, val_char_embeddings,
+        word_embeddings_model, char_emb, text_train, text_val, batch_size, 
         device, num_to_tag, eval, logger)
 
     #Evaluate on test set
