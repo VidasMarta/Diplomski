@@ -56,7 +56,7 @@ def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, 
         final_loss += loss.item()
     return final_loss / len(data_loader)
 
-def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, word_embeddings_model, char_emb, text_train, text_val, batch_size, device, num_to_tag, eval, logger):
+def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, device, num_to_tag, eval, logger):
     print("Started training")
     max_grad_norm = model_args['max_grad_norm']
     # Create models
@@ -162,7 +162,7 @@ def main():
     valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
 
     train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
-        word_embeddings_model, char_emb, text_train, text_val, batch_size, 
+        word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
         device, num_to_tag, eval, logger)
 
     #Evaluate on test set
