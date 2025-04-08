@@ -12,8 +12,8 @@ model:
   epochs: 300
   max_length: 256
   max_grad_norm: 5.0
-  early_stopping: 5 #preporuca se izmedu 10 i 100 (obicno 10 ili 20)
-  min_delta : 1e-2 #moze i 0 ili << 1 npr. 0.0001
+  early_stopping: 20 #preporuca se izmedu 10 i 100 (obicno 10 ili 20)
+  min_delta : 0.0001 #moze i 0 ili << 1 npr. 0.0001
 
 # Embedding and Dataset Configuration
 settings:

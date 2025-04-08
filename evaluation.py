@@ -58,15 +58,16 @@ class Evaluation:
             # Predicted tags already have no padding, so just map them to strings
             predicted_string_tags = [[num_to_tag_dict[int(t)] for t in seq] for seq in all_pred_tags]
 
-            f1_score = seqeval.metrics.f1_score(unpadded_true_string_tags, predicted_string_tags, average='micro', scheme=self.tagging_scheme)
+            #mode='strict' ->  ensures that entity predictions are only counted as correct if they exactly match the true entity boundaries and the entity type
+            f1_score = seqeval.metrics.f1_score(unpadded_true_string_tags, predicted_string_tags, average='micro') #, mode='strict', scheme=self.tagging_scheme)
             loss = final_loss/len(data_loader)
 
             if epoch == -1: #test set
-                precision = seqeval.metrics.precision_score(unpadded_true_string_tags, predicted_string_tags, average='micro', scheme=self.tagging_scheme)
-                recall = seqeval.metrics.recall_score(unpadded_true_string_tags, predicted_string_tags, average='micro', scheme=self.tagging_scheme)
+                precision = seqeval.metrics.precision_score(unpadded_true_string_tags, predicted_string_tags, average='micro') #, mode='strict', scheme=self.tagging_scheme)
+                recall = seqeval.metrics.recall_score(unpadded_true_string_tags, predicted_string_tags, average='micro') #, mode='strict', scheme=self.tagging_scheme)
                 logger.log_test_results(loss, f1_score, precision, recall)
 
-                print(seqeval.metrics.classification_report(unpadded_true_string_tags, predicted_string_tags, scheme=self.tagging_scheme))
+                print(seqeval.metrics.classification_report(unpadded_true_string_tags, predicted_string_tags)) #,  mode='strict', scheme=self.tagging_scheme))
                 print(f"Test Loss = {loss}")
             
             else:
