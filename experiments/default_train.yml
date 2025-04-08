@@ -17,7 +17,6 @@ model:
 
 # Embedding and Dataset Configuration
 settings:
-  num_workers: 10 #koliko workera za učitavanje dataseta (DatasetLoader)
   word_embedding: "bioBERT"  # Options: "bioELMo"
   char_cnn_embedding: true #if false, ignore cnn_* settings
   cnn_vocab: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #

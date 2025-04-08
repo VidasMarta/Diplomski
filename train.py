@@ -158,9 +158,8 @@ def main():
     tokens_val_padded, tags_val_padded, attention_masks_val = word_embeddings_model.tokenize_and_pad_text(text_val, tags_val)
     val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
 
-    num_workers = settings_args['num_workers']
-    train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, num_workers = num_workers)
-    valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size, num_workers = num_workers)
+    train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size)
+    valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
 
     train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
         word_embeddings_model, train_char_embeddings, val_char_embeddings,
@@ -169,7 +168,7 @@ def main():
     #Evaluate on test set
     tokens_test_padded, tags_test_padded, attention_masks_test = word_embeddings_model.tokenize_and_pad_text(text_test, tags_test)
     test_data = Dataset(tokens_test_padded, tags_test_padded, attention_masks_test)
-    test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, num_workers = num_workers)
+    test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
 
     best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
     best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim']) 
