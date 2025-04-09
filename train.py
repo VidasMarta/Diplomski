@@ -106,7 +106,7 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
     torch.save(best_model.state_dict(), settings.MODEL_PATH +f"/{model_name}_best.bin")
 
 
-def main():
+def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/notes/randomness.html)
     args = parse_args()
     model_name = args.model_name
     model_args, settings_args = settings.Settings(args.config)
@@ -127,7 +127,7 @@ def main():
         device = 'cpu'
         print("Using cpu")
     
-    dataset_loader = DatasetLoader("ncbi_disease_json", settings.DATA_PATH)
+    dataset_loader = DatasetLoader(settings_args['dataset'], settings.DATA_PATH)
     tag_to_num, (text_train, tags_train), (text_val, tags_val), (text_test, tags_test) = dataset_loader.load_data()
     num_tags = len(tag_to_num)
     num_to_tag = dict((v,k) for k,v in tag_to_num.items())
