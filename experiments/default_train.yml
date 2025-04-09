@@ -17,7 +17,7 @@ model:
 
 # Embedding and Dataset Configuration
 settings:
-  word_embedding: "bioELMo"  # Options: "bioBERT"
+  word_embedding: "bioBERT"  # Options: "bioELMo"
   char_cnn_embedding: true #if false, ignore cnn_* settings
   cnn_vocab: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #
   cnn_max_word_len: 7 
