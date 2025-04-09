@@ -9,7 +9,7 @@ import torch.nn as nn
 class Embedding(ABC): #For word embeddings
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
         self.dataset_name = dataset_name
-        self.MAX_LEN = max_len
+        self.max_len = max_len
         self.embedding_model_name = embedding_model_name
         self.embedding_dim = None
 
@@ -52,52 +52,44 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
     def tokenize_and_pad_text(self, text, tags):
         # Convert list of token lists into full sentences
         sentences_list = [["".join(word) for word in line] for line in text]
+        all_input_ids = []
+        all_padded_tags = []
+        all_attention_masks = []
 
-        # Tokenize with padding and truncation
-        tokenized_output = self.tokenizer(
-            sentences_list, 
-            padding="max_length", 
-            truncation=True, 
-            max_length=self.max_len,  
-            return_tensors="pt", 
-            is_split_into_words=True,
-            return_token_type_ids = False,
-            add_special_tokens=False
-        )
+        for words, tags in zip(sentences_list, tags):
+            word_piece_ids = [] #ids of tokenized words
+            aligned_tags = [] 
 
-        # Initialize list for padded tags
-        padded_tags = []
-        #Bert's tokenizer can split words into subwords, continuous words are marked with ## at the beginning of a token
+            word_piece_ids.append(self.tokenizer.cls_token_id) #add cls token in the beginning of a sentence
+            aligned_tags.append(-1)  # tag for CLS is padding -1
 
-        # For each sequence, align tags with tokenized tokens
-        for line_tags, line_tokens in zip(tags, tokenized_output["input_ids"]):
-            new_tags = []
-            word_tag_index = 0
+            for word, tag in zip(words, tags):
+                tokens = self.tokenizer.tokenize(word)
+                token_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+
+                if len(word_piece_ids) + len(token_ids) + 1 >= self.max_len: #make sure that len of current sentence embedding (+1 for sep) is not begger than max_len 
+                    break 
+                    
+                word_piece_ids.extend(token_ids) 
+                aligned_tags.extend([tag] * len(token_ids))  # Repeat tag for each subword
+
             
-            # Tokenize the current sentence and break it into words and subwords
-            tokens = self.tokenizer.tokenize(self.tokenizer.decode(line_tokens))
+            word_piece_ids.append(self.tokenizer.sep_token_id) #add sep token in the beginning of a sentence
+            aligned_tags.append(-1)  #tag for SEP is padding
 
-            # Loop through each token in the tokenized sentence
-            for token, token_id in zip(tokens, line_tokens):
-                # If the token ID corresponds to a real word (i.e., not padding)
-                if token_id != self.tokenizer.pad_token_id:
-                    # Check if this token corresponds to the first token of a word
-                    if token.startswith("##"):
-                        # Subword token -> keep the same tag as the word
-                        new_tags.append(new_tags[-1])
-                    else:
-                        # First subword of a word -> assign a new tag
-                        new_tags.append(line_tags[word_tag_index])
-                        word_tag_index += 1  # Move to the next word tag
-                else:
-                    # Use -1 for padding tokens
-                    new_tags.append(-1)
+            # Add padding to match max_len
+            padding_length = self.max_len - len(word_piece_ids)
+            word_piece_ids.extend([self.tokenizer.pad_token_id] * padding_length)
+            aligned_tags.extend([-1] * padding_length)
             
-            padded_tags.append(new_tags)
+            #compute attention_mask
+            attention_mask = [1 if idx != self.tokenizer.pad_token_id else 0 for idx in word_piece_ids]
 
-        tags_tensor = torch.tensor(padded_tags, dtype=torch.long)
+            all_input_ids.append(torch.tensor(word_piece_ids))
+            all_padded_tags.append(torch.tensor(aligned_tags))
+            all_attention_masks.append(torch.tensor(attention_mask))
 
-        return tokenized_output["input_ids"], tags_tensor, tokenized_output["attention_mask"]
+        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks)
 
 
     def get_embedding(self, token_list, attention_masks): 

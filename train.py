@@ -132,7 +132,8 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     num_tags = len(tag_to_num)
     num_to_tag = dict((v,k) for k,v in tag_to_num.items())
     
-    max_len = get_max_len(text_train) #, text_val, text_test) TODO: provjeri jel bi ovo bilo ok isto staviti u racun max_len, iako na prvu mislim da zapravo nije jer je info leak, pogotovo za test
+    max_len = 256 #TODO: mozda ovo staviti ko hiperparametar, jer ako stavim get_max_len bioBERT će možda izgubit više riječi kad radi subtokene
+    #get_max_len(text_train) #, text_val, text_test) TODO: provjeri jel bi ovo bilo ok isto staviti u racun max_len, iako na prvu mislim da zapravo nije jer je info leak, pogotovo za test
     
     word_embedding = settings_args['word_embedding']
     word_embeddings_model = Embedding.create(word_embedding, dataset_loader.dataset_name, max_len) 
