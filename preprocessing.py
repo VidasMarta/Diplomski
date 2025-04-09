@@ -40,14 +40,14 @@ class Embedding(ABC): #For word embeddings
     def tokenize_and_pad_text(self, text, tags):
         pass
     
-class Embedding_bioBERT(Embedding): #TODO: skinuti i pohraniti težine jer u job-u ne može na internet da ih skine
+class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://github.com/naver/biobert-pretrained)
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
         super(Embedding_bioBERT, self).__init__(embedding_model_name, dataset_name, max_len)
         self.max_len = max_len
         self.embedding_dim = 768  # Dimensionality of BioBERT embeddings
-        model_name = "dmis-lab/biobert-base-cased-v1.1"
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.bert = AutoModel.from_pretrained(model_name)
+        bioBERT_setup_path = os.path.join(settings.EMBEDDINGS_PATH, "bioBERT_setup") 
+        self.tokenizer = AutoTokenizer.from_pretrained(bioBERT_setup_path)
+        self.bert = AutoModel.from_pretrained(bioBERT_setup_path)
 
     def tokenize_and_pad_text(self, text, tags):
         # Convert list of token lists into full sentences
