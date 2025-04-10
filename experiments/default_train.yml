@@ -1,8 +1,8 @@
 # Model Hyperparameters
 model:
   cell: "lstm"  # Options: "lstm", "gru"
-  hidden_size: 256
-  num_layers: 2
+  hidden_size: 512
+  num_layers: 1
   dropout: 0.3
   learning_rate: 0.001
   batch_size: 32

@@ -116,8 +116,6 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     print("Model Args:", model_args)
     print("Settings Args:", settings_args)
 
-    model_args['char_embedding_dim'] = None
-
     logger = Logger(os.path.join(settings.LOG_PATH, model_name), model_args, settings_args)
 
     if torch.cuda.is_available():
@@ -129,20 +127,21 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     
     dataset_loader = DatasetLoader(settings_args['dataset'], settings.DATA_PATH)
     tag_to_num, (text_train, tags_train), (text_val, tags_val), (text_test, tags_test) = dataset_loader.load_data()
-    num_tags = len(tag_to_num)
-    num_to_tag = dict((v,k) for k,v in tag_to_num.items())
+    num_tags = len(tag_to_num) #number of tags used (e.g. 3 for O, B-entity, I-entity)
+    num_to_tag = dict((v,k) for k,v in tag_to_num.items()) 
     
     max_len = model_args['max_length'] 
-    
     word_embedding = settings_args['word_embedding']
     word_embeddings_model = Embedding.create(word_embedding, dataset_loader.dataset_name, max_len) 
 
-    eval = Evaluation(settings_args["tagging_scheme"], word_embeddings_model.tokenizer)
+    eval = Evaluation(word_embeddings_model.tokenizer, settings_args["tagging_scheme"])
 
+    #if no char cnn is used
     char_emb = None
     train_char_embeddings = None
     val_char_embeddings = None
     test_char_embeddings = None
+    model_args['char_embedding_dim'] = None
 
     batch_size = model_args['batch_size']
     if settings_args['char_cnn_embedding']:
@@ -154,7 +153,6 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
         char_emb = CharEmbeddingCNN(vocab, char_emb_size, char_kernel_size, max_word_len)
         test_char_embeddings = char_emb.batch_cnn_embedding_generator(text_test, max_len, batch_size)
         
-
     
     tokens_train_padded, tags_train_padded, attention_masks_train = word_embeddings_model.tokenize_and_pad_text(text_train, tags_train)
     train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)

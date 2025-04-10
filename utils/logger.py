@@ -9,10 +9,12 @@ class Logger:
         if not os.path.exists(self.output_path):
             os.mkdir(model_logs_path)
 
+        #prepare files for log writing
         open(self.output_path+'/train.log',"w").close()
         open(self.output_path+'/valid.log',"w").close()
         open(self.output_path+'/test.log',"w").close()
 
+        #write config (hyperparameters etc.)
         log_config_file = open(self.output_path+'/config.log', "w")
         json.dump(model_args, log_config_file)
         log_config_file.write("\n")
