@@ -9,8 +9,10 @@ import seqeval
 
 # TODO: mozda koristiti seqval (https://github.com/chakki-works/seqeval/tree/master) za evaluaciju
 class Evaluation:
-    def __init__(self, tagging_scheme = 'IOB1'):
+    def __init__(self, tokenizer, tagging_scheme = 'IOB1'):
         self.tagging_scheme = tagging_scheme
+        self.tokenizer = tokenizer
+        
     
     def evaluate(self, data_loader, model, device, word_embeddings_model, char_embeddings, num_to_tag_dict, logger, epoch = -1):
         '''
@@ -44,35 +46,43 @@ class Evaluation:
                 loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
                 final_loss += loss.item()
 
-                pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding)                    
+                pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding)  
+                print("True tags shape:", tags.shape)
+                print("Predicted tags shape:", len(pred_tags[0]))
 
-                # Remove padding only from true tags 
-                unpadded_true_tags = [[t for t in seq if int(t) != -1] for seq in tags]
+                for i in range(len(tokens)): #remove padding and get only one tag per word (for subword cases, when using BERT)
+                    word_ids = self.tokenizer.word_ids[i] 
+                    true_tag_seq = tags[i].tolost()
+                    pred_tag_seq = pred_tags[i]
 
-                all_true_tags.extend(unpadded_true_tags) 
-                all_pred_tags.extend(pred_tags)
+                    relevant_true_tags = []
+                    relevant_pred_tags = []
+                    seen_word_ids = set()
 
-            #for seqeval tags have to be strings
-            unpadded_true_string_tags = [[num_to_tag_dict[int(t)] for t in seq] for seq in all_true_tags]
+                    for j, word_id in enumerate(word_ids):
+                        if word_id is None or word_id in seen_word_ids: #word_id is None for padding and special tokens (aka SEP, CLS)
+                            continue
+                        relevant_true_tags.append(num_to_tag_dict[int(true_tag_seq[j])]) #for seqeval tags have to be strings
+                        relevant_pred_tags.append(num_to_tag_dict[int(pred_tag_seq[j])])
 
-            # Predicted tags already have no padding, so just map them to strings
-            predicted_string_tags = [[num_to_tag_dict[int(t)] for t in seq] for seq in all_pred_tags]
+                all_true_tags.extend(relevant_true_tags) 
+                all_pred_tags.extend(relevant_pred_tags)
 
             #mode='strict' ->  ensures that entity predictions are only counted as correct if they exactly match the true entity boundaries and the entity type
-            f1_score = seqeval.metrics.f1_score(unpadded_true_string_tags, predicted_string_tags, average='micro') 
-            f1_score_strict = seqeval.metrics.f1_score(unpadded_true_string_tags, predicted_string_tags, average='micro', mode='strict', scheme=self.tagging_scheme)
+            f1_score = seqeval.metrics.f1_score(all_true_tags, all_pred_tags, average='micro') 
+            f1_score_strict = seqeval.metrics.f1_score(all_true_tags, all_pred_tags, average='micro', mode='strict', scheme=self.tagging_scheme)
             loss = final_loss/len(data_loader)
 
             if epoch == -1: #test set
-                precision = seqeval.metrics.precision_score(unpadded_true_string_tags, predicted_string_tags, average='micro') 
-                precision_strict = seqeval.metrics.precision_score(unpadded_true_string_tags, predicted_string_tags, average='micro', mode='strict', scheme=self.tagging_scheme)
-                recall = seqeval.metrics.recall_score(unpadded_true_string_tags, predicted_string_tags, average='micro') 
-                recall_strict = seqeval.metrics.recall_score(unpadded_true_string_tags, predicted_string_tags, average='micro', mode='strict', scheme=self.tagging_scheme)
+                precision = seqeval.metrics.precision_score(all_true_tags, all_pred_tags, average='micro') 
+                precision_strict = seqeval.metrics.precision_score(all_true_tags, all_pred_tags, average='micro', mode='strict', scheme=self.tagging_scheme)
+                recall = seqeval.metrics.recall_score(all_true_tags, all_pred_tags, average='micro') 
+                recall_strict = seqeval.metrics.recall_score(all_true_tags, all_pred_tags, average='micro', mode='strict', scheme=self.tagging_scheme)
                 logger.log_test_results(loss, f1_score, precision, recall, f1_score_strict, precision_strict, recall_strict)
 
-                print(seqeval.metrics.classification_report(unpadded_true_string_tags, predicted_string_tags))
+                print(seqeval.metrics.classification_report(all_true_tags, all_pred_tags))
                 print("strict: ")
-                print(seqeval.metrics.classification_report(unpadded_true_string_tags, predicted_string_tags,  mode='strict', scheme=self.tagging_scheme))
+                print(seqeval.metrics.classification_report(all_true_tags, all_pred_tags,  mode='strict', scheme=self.tagging_scheme))
                 print(f"Test Loss = {loss}")
             
             else:

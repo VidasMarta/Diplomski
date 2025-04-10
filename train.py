@@ -75,8 +75,9 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
     min_delta = float(model_args['min_delta'])
 
     for epoch in range(num_epochs):
-        train_char_embeddings = char_emb.batch_cnn_embedding_generator(text_train, max_len, batch_size)
-        val_char_embeddings = char_emb.batch_cnn_embedding_generator(text_val, max_len, batch_size)
+        if char_emb is not None:
+            train_char_embeddings = char_emb.batch_cnn_embedding_generator(text_train, max_len, batch_size)
+            val_char_embeddings = char_emb.batch_cnn_embedding_generator(text_val, max_len, batch_size)
         train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
         logger.log_train_loss(epoch+1, train_loss)
         #torch.cuda.empty_cache()
@@ -118,7 +119,6 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     model_args['char_embedding_dim'] = None
 
     logger = Logger(os.path.join(settings.LOG_PATH, model_name), model_args, settings_args)
-    eval = Evaluation(settings_args["tagging_scheme"])
 
     if torch.cuda.is_available():
         device = 'cuda'
@@ -138,6 +138,9 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     word_embedding = settings_args['word_embedding']
     word_embeddings_model = Embedding.create(word_embedding, dataset_loader.dataset_name, max_len) 
 
+    eval = Evaluation(settings_args["tagging_scheme"], word_embeddings_model.tokenizer)
+
+    char_emb = None
     train_char_embeddings = None
     val_char_embeddings = None
     test_char_embeddings = None
