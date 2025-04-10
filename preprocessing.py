@@ -12,6 +12,7 @@ class Embedding(ABC): #For word embeddings
         self.max_len = max_len
         self.embedding_model_name = embedding_model_name
         self.embedding_dim = None
+        self.tokenizer = None
 
     @staticmethod
     def create(embedding_model_name, dataset_name, max_len=256):

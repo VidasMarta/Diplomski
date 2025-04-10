@@ -12,8 +12,22 @@ class Evaluation:
     def __init__(self, tokenizer, tagging_scheme = 'IOB1'):
         self.tagging_scheme = tagging_scheme
         self.tokenizer = tokenizer
+
+    def _get_relevant_tags(self, tags, num_to_tag_dict):
+        for i in range(len(tags)): #remove padding and get only one tag per word (for subword cases, when using BERT)
+            word_ids = self.tokenizer.word_ids[i] #word_id is the same for subwords of one word
+            tag_seq = tags[i].tolist()
+                    
+            relevant_tags = []
+            seen_word_ids = set()
+
+            for j, word_id in enumerate(word_ids):
+                if word_id is None or word_id in seen_word_ids: #word_id is None for padding and special tokens (aka SEP, CLS), if word_in already seen (it's subword)
+                    continue
+                relevant_tags.append(num_to_tag_dict[int(tag_seq[j])]) #for seqeval tags have to be strings
+
+        return relevant_tags
         
-    
     def evaluate(self, data_loader, model, device, word_embeddings_model, char_embeddings, num_to_tag_dict, logger, epoch = -1):
         '''
         Evaluate the model on the test set
@@ -46,24 +60,13 @@ class Evaluation:
                 loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
                 final_loss += loss.item()
 
-                pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding)  
-                print("True tags shape:", tags.shape)
-                print("Predicted tags shape:", len(pred_tags[0]))
+                pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
 
-                for i in range(len(tokens)): #remove padding and get only one tag per word (for subword cases, when using BERT)
-                    word_ids = self.tokenizer.word_ids[i] 
-                    true_tag_seq = tags[i].tolost()
-                    pred_tag_seq = pred_tags[i]
+                relevant_true_tags = self._get_relevant_tags(tags, num_to_tag_dict)
+                relevant_pred_tags = self._get_relevant_tags(pred_tags, num_to_tag_dict)
 
-                    relevant_true_tags = []
-                    relevant_pred_tags = []
-                    seen_word_ids = set()
-
-                    for j, word_id in enumerate(word_ids):
-                        if word_id is None or word_id in seen_word_ids: #word_id is None for padding and special tokens (aka SEP, CLS)
-                            continue
-                        relevant_true_tags.append(num_to_tag_dict[int(true_tag_seq[j])]) #for seqeval tags have to be strings
-                        relevant_pred_tags.append(num_to_tag_dict[int(pred_tag_seq[j])])
+                print("True tags shape: ", torch.tensor(relevant_true_tags).shape)
+                print("Predicted tags shape: ", torch.tensor(relevant_pred_tags).shape)
 
                 all_true_tags.extend(relevant_true_tags) 
                 all_pred_tags.extend(relevant_pred_tags)
