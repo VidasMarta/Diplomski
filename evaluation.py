@@ -45,13 +45,13 @@ class Evaluation:
 
                 pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
 
-                relevant_true_tags = self.emb_model.get_relevant_tags(tags)
-                relevant_pred_tags = self.emb_model.get_relevant_tags(pred_tags)
+                relevant_true_tags = self.emb_model.get_relevant_tags(tags, num_to_tag_dict)
+                relevant_pred_tags = self.emb_model.get_relevant_tags(pred_tags, num_to_tag_dict)
 
                 assert all(len(p) == len(t) for p, t in zip(relevant_pred_tags, relevant_true_tags)), "Tag length mismatch!"
                 
-                all_true_tags.extend([num_to_tag_dict[tag] for tag in relevant_true_tags])  #for seqeval tags have to be strings
-                all_pred_tags.extend([num_to_tag_dict[tag] for tag in relevant_pred_tags])
+                all_true_tags.extend(relevant_true_tags)  
+                all_pred_tags.extend(relevant_pred_tags)
 
             #mode='strict' ->  ensures that entity predictions are only counted as correct if they exactly match the true entity boundaries and the entity type
             f1_score = seqeval.metrics.f1_score(all_true_tags, all_pred_tags, average='micro') 

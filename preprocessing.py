@@ -41,7 +41,7 @@ class Embedding(ABC): #For word embeddings
         pass
 
     @abstractmethod
-    def get_relevant_tags(self, tags):
+    def get_relevant_tags(self, tags, num_to_tag_dict):
         pass
     
 class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://github.com/naver/biobert-pretrained)
@@ -113,7 +113,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences.  Embeddings and attention masks saved!")
     
-    def get_relevant_tags(self, tags):
+    def get_relevant_tags(self, tags, num_to_tag_dict): 
         all_relevant_tags = []
         for i in range(len(tags)): 
             tag_seq = tags[i] #remove padding and get only one tag per word (for subword cases ignore second tag, it's the same)
@@ -125,7 +125,8 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             for j, word_id in enumerate(batch_word_ids):
                 if word_id is None or word_id in seen_word_ids: #word_id is None for padding and special tokens (aka PAD, SEP, CLS), if word_in already seen (it's subword)
                     continue
-                relevant_tags.append(int(tag_seq[j])) 
+                relevant_tags.append(num_to_tag_dict[int(tag_seq[j])]) #for seqeval tags have to be strings
+                seen_word_ids.add(word_id)
                 
             all_relevant_tags.append(relevant_tags)
 
@@ -191,11 +192,11 @@ class Embedding_bioELMo(Embedding):
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
 
-    def get_relevant_tags(self, tags):
+    def get_relevant_tags(self, tags, num_to_tag_dict):
         all_relevant_tags = []
         for i in range(len(tags)):
             tag_seq = tags[i]
-            relevant_tags = [int(tag) for tag in tag_seq if tag != -1] #only remove padding (when using ELMo, tokens are per words)
+            relevant_tags = [num_to_tag_dict[int(tag)] for tag in tag_seq if tag != -1] #only remove padding (when using ELMo, tokens are per words), for seqeval tags have to be strings
             all_relevant_tags.append(relevant_tags)
 
         return all_relevant_tags
