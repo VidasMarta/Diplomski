@@ -41,7 +41,7 @@ class Embedding(ABC): #For word embeddings
         pass
 
     @abstractmethod
-    def get_relevant_tags(self, tags, num_to_tag_dict):
+    def get_relevant_tags(self, tags, num_to_tag_dict, is_prediction=False):
         pass
     
 class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://github.com/naver/biobert-pretrained)
@@ -113,7 +113,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences.  Embeddings and attention masks saved!")
     
-    def get_relevant_tags(self, tags, num_to_tag_dict): 
+    def get_relevant_tags(self, tags, num_to_tag_dict, is_prediction=False): 
         all_relevant_tags = []
         for i in range(len(tags)): 
             tag_seq = tags[i] #remove padding and get only one tag per word (for subword cases ignore second tag, it's the same)
@@ -122,13 +122,22 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             relevant_tags = []
             seen_word_ids = set()
 
+            tag_idx = 0
+
             for j, word_id in enumerate(batch_word_ids):
                 if word_id is None or word_id in seen_word_ids: #word_id is None for padding and special tokens (aka PAD, SEP, CLS), if word_in already seen (it's subword)
                     continue
-                if int(tag_seq[j]) != -1:
-                    relevant_tags.append(num_to_tag_dict[int(tag_seq[j])]) #for seqeval tags have to be strings
+
+                if is_prediction: #prediction tags don't have padding (attention mask is used when predicting)
+                    if tag_idx < len(tag_seq):
+                        relevant_tags.append(num_to_tag_dict[int(tag_seq[tag_idx])]) #for seqeval tags have to be strings
+                        tag_idx += 1
+                    else:
+                        print(f"[Warning] Ran out of predicted tags at position {tag_idx}, word_id {word_id}")
+                        break 
                 else:
-                    print(word_id)
+                    relevant_tags.append(num_to_tag_dict[int(tag_seq[j])])
+
                 seen_word_ids.add(word_id)
                 
             all_relevant_tags.append(relevant_tags)
@@ -195,7 +204,7 @@ class Embedding_bioELMo(Embedding):
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
 
-    def get_relevant_tags(self, tags, num_to_tag_dict):
+    def get_relevant_tags(self, tags, num_to_tag_dict, is_prediction=False):
         all_relevant_tags = []
         for i in range(len(tags)):
             tag_seq = tags[i]

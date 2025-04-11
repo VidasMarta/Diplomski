@@ -46,7 +46,7 @@ class Evaluation:
                 pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
 
                 relevant_true_tags = self.emb_model.get_relevant_tags(tags, num_to_tag_dict)
-                relevant_pred_tags = self.emb_model.get_relevant_tags(pred_tags, num_to_tag_dict)
+                relevant_pred_tags = self.emb_model.get_relevant_tags(pred_tags, num_to_tag_dict, True)
 
                 assert all(len(p) == len(t) for p, t in zip(relevant_pred_tags, relevant_true_tags)), "Tag length mismatch!"
                 
