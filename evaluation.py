@@ -6,8 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seqeval
 
-
-# TODO: mozda koristiti seqval (https://github.com/chakki-works/seqeval/tree/master) za evaluaciju
 class Evaluation:
     def __init__(self, emb_model, tagging_scheme = 'IOB1'):
         self.tagging_scheme = tagging_scheme

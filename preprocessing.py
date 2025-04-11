@@ -116,7 +116,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
     def get_relevant_tags(self, tags):
         all_relevant_tags = []
         for i in range(len(tags)): 
-            tag_seq = tags[i].tolist()#remove padding and get only one tag per word (for subword cases ignore second tag, it's the same)
+            tag_seq = tags[i] #remove padding and get only one tag per word (for subword cases ignore second tag, it's the same)
             batch_word_ids = self.word_ids[i] #word_id is the same for subwords of one word
                             
             relevant_tags = []
@@ -194,7 +194,7 @@ class Embedding_bioELMo(Embedding):
     def get_relevant_tags(self, tags):
         all_relevant_tags = []
         for i in range(len(tags)):
-            tag_seq = tags[i].tolist()
+            tag_seq = tags[i]
             relevant_tags = [int(tag) for tag in tag_seq if tag != -1] #only remove padding (when using ELMo, tokens are per words)
             all_relevant_tags.append(relevant_tags)
 
