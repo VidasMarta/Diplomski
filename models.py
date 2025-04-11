@@ -26,6 +26,8 @@ class BiRNN_CRF(nn.Module):
             raise ValueError(f"Cell {self.cell} not supported")
 
         self.dropout_tag = nn.Dropout(self.dropout)
+
+        #TODO: za attention dodati konkatenaciju izlaza iz RNN-a i contex vecotra (suma alpha_s*h_s) i onda to propustiti u Linear pa CRF
         
         self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
 

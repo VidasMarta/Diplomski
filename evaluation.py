@@ -4,7 +4,7 @@ import torch
 #from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, f1_score
 import numpy as np
 import matplotlib.pyplot as plt
-import seqeval
+import seqeval 
 
 class Evaluation:
     def __init__(self, emb_model, tagging_scheme = 'IOB1'):
