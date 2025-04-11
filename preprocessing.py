@@ -12,7 +12,6 @@ class Embedding(ABC): #For word embeddings
         self.max_len = max_len
         self.embedding_model_name = embedding_model_name
         self.embedding_dim = None
-        self.word_ids = None
 
     @staticmethod
     def create(embedding_model_name, dataset_name, max_len=256):
@@ -39,6 +38,10 @@ class Embedding(ABC): #For word embeddings
 
     @abstractmethod
     def tokenize_and_pad_text(self, text, tags):
+        pass
+
+    @abstractmethod
+    def get_relevant_tags(self, tags):
         pass
     
 class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://github.com/naver/biobert-pretrained)
@@ -109,7 +112,24 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_embeddings.npy", embeddings_list)
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences.  Embeddings and attention masks saved!")
+    
+    def get_relevant_tags(self, tags):
+        all_relevant_tags = []
+        for i in range(len(tags)): 
+            tag_seq = tags[i].tolist()#remove padding and get only one tag per word (for subword cases ignore second tag, it's the same)
+            batch_word_ids = self.word_ids[i] #word_id is the same for subwords of one word
+                            
+            relevant_tags = []
+            seen_word_ids = set()
 
+            for j, word_id in enumerate(batch_word_ids):
+                if word_id is None or word_id in seen_word_ids: #word_id is None for padding and special tokens (aka PAD, SEP, CLS), if word_in already seen (it's subword)
+                    continue
+                relevant_tags.append(int(tag_seq[j])) 
+                
+            all_relevant_tags.append(relevant_tags)
+
+        return all_relevant_tags
 
 class Embedding_bioELMo(Embedding):
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
@@ -170,6 +190,15 @@ class Embedding_bioELMo(Embedding):
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_embeddings.npy", embeddings_list)
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
+
+    def get_relevant_tags(self, tags):
+        all_relevant_tags = []
+        for i in range(len(tags)):
+            tag_seq = tags[i].tolist()
+            relevant_tags = [int(tag) for tag in tag_seq if tag != -1] #only remove padding (when using ELMo, tokens are per words)
+            all_relevant_tags.append(relevant_tags)
+
+        return all_relevant_tags
 
 
 class CharEmbeddingCNN(nn.Module): #For char embeddings

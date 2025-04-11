@@ -9,33 +9,9 @@ import seqeval
 
 # TODO: mozda koristiti seqval (https://github.com/chakki-works/seqeval/tree/master) za evaluaciju
 class Evaluation:
-    def __init__(self, tagging_scheme = 'IOB1', bert_word_ids=None):
+    def __init__(self, emb_model, tagging_scheme = 'IOB1'):
         self.tagging_scheme = tagging_scheme
-        self.word_ids = bert_word_ids
-
-    def _get_relevant_tags(self, tags, num_to_tag_dict):
-        all_relevant_tags = []
-        for i in range(len(tags)): 
-            tag_seq = tags[i].tolist()
-
-            if self.word_ids is not None: #remove padding and get only one tag per word (for subword cases, when using BERT)
-                batch_word_ids = self.word_ids[i] #word_id is the same for subwords of one word
-                            
-                relevant_tags = []
-                seen_word_ids = set()
-
-                for j, word_id in enumerate(batch_word_ids):
-                    if word_id is None or word_id in seen_word_ids: #word_id is None for padding and special tokens (aka SEP, CLS), if word_in already seen (it's subword)
-                        continue
-                    relevant_tags.append(num_to_tag_dict[int(tag_seq[j])]) #for seqeval tags have to be strings
-                
-                all_relevant_tags.append(relevant_tags)
-            
-            else:
-                relevant_tags = [num_to_tag_dict[int(tag)] for tag in tag_seq if tag != -1] #only remove padding (when using ELMo, tokens are per words)
-                all_relevant_tags.append(relevant_tags)
-
-        return all_relevant_tags
+        self.emb_model = emb_model
         
     def evaluate(self, data_loader, model, device, word_embeddings_model, char_embeddings, num_to_tag_dict, logger, epoch = -1):
         '''
@@ -71,13 +47,13 @@ class Evaluation:
 
                 pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
 
-                relevant_true_tags = self._get_relevant_tags(tags, num_to_tag_dict)
-                relevant_pred_tags = self._get_relevant_tags(pred_tags, num_to_tag_dict)
+                relevant_true_tags = self.emb_model.get_relevant_tags(tags)
+                relevant_pred_tags = self.emb_model.get_relevant_tags(pred_tags)
 
                 assert all(len(p) == len(t) for p, t in zip(relevant_pred_tags, relevant_true_tags)), "Tag length mismatch!"
-
-                all_true_tags.extend(relevant_true_tags) 
-                all_pred_tags.extend(relevant_pred_tags)
+                
+                all_true_tags.extend([num_to_tag_dict[tag] for tag in relevant_true_tags])  #for seqeval tags have to be strings
+                all_pred_tags.extend([num_to_tag_dict[tag] for tag in relevant_pred_tags])
 
             #mode='strict' ->  ensures that entity predictions are only counted as correct if they exactly match the true entity boundaries and the entity type
             f1_score = seqeval.metrics.f1_score(all_true_tags, all_pred_tags, average='micro') 
