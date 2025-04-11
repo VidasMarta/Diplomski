@@ -135,7 +135,8 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
                     else:
                         print(f"[Warning] Ran out of predicted tags at position {tag_idx}, word_id {word_id}")
                         break 
-                else:
+                    
+                elif int(tag_seq[j]) != -1:
                     relevant_tags.append(num_to_tag_dict[int(tag_seq[j])])
 
                 seen_word_ids.add(word_id)
