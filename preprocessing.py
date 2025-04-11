@@ -125,7 +125,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             tag_idx = 0
 
             for j, word_id in enumerate(batch_word_ids):
-                if word_id is None or word_id in seen_word_ids or int(tag_seq[j]) == -1: #word_id is None for padding and special tokens (aka PAD, SEP, CLS), if word_in already seen (it's subword)
+                if word_id is None or word_id in seen_word_ids: #word_id is None for padding and special tokens (aka PAD, SEP, CLS), if word_in already seen (it's subword)
                     continue
 
                 if is_prediction: #prediction tags don't have padding (attention mask is used when predicting)
@@ -136,7 +136,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
                         print(f"[Warning] Ran out of predicted tags at position {tag_idx}, word_id {word_id}")
                         break 
 
-                else:
+                elif int(tag_seq[j]) != -1:
                     relevant_tags.append(num_to_tag_dict[int(tag_seq[j])])
 
                 seen_word_ids.add(word_id)
