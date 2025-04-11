@@ -134,7 +134,7 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     word_embedding = settings_args['word_embedding']
     word_embeddings_model = Embedding.create(word_embedding, dataset_loader.dataset_name, max_len) 
 
-    eval = Evaluation(word_embeddings_model.tokenizer, settings_args["tagging_scheme"])
+    eval = Evaluation(settings_args["tagging_scheme"], word_embeddings_model.word_ids)
 
     #if no char cnn is used
     char_emb = None

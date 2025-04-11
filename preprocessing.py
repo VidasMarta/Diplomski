@@ -12,7 +12,7 @@ class Embedding(ABC): #For word embeddings
         self.max_len = max_len
         self.embedding_model_name = embedding_model_name
         self.embedding_dim = None
-        self.tokenizer = None
+        self.word_ids = None
 
     @staticmethod
     def create(embedding_model_name, dataset_name, max_len=256):
@@ -49,46 +49,43 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         bioBERT_setup_path = os.path.join(settings.EMBEDDINGS_PATH, "bioBERT_setup") 
         self.tokenizer = AutoTokenizer.from_pretrained(bioBERT_setup_path)
         self.bert = AutoModel.from_pretrained(bioBERT_setup_path)
+        self.word_ids = None
 
     def tokenize_and_pad_text(self, text, tags):
-        # Convert list of token lists into full sentences
-        sentences_list = [["".join(word) for word in line] for line in text]
         all_input_ids = []
         all_padded_tags = []
         all_attention_masks = []
+        all_word_ids = []  # need this for evaluation
 
-        for words, tags in zip(sentences_list, tags):
-            word_piece_ids = [] #ids of tokenized words
-            aligned_tags = [] 
+        for sentence, sentence_tags in zip(text, tags):
+            encoding = self.tokenizer(
+                sentence,
+                is_split_into_words=True,
+                truncation=True,
+                padding='max_length',
+                max_length=self.max_len,
+                return_tensors='pt',
+                return_attention_mask=True,
+            )
 
-            word_piece_ids.append(self.tokenizer.cls_token_id) #add cls token in the beginning of a sentence
-            aligned_tags.append(-1)  # tag for CLS is padding -1
+            input_ids = encoding["input_ids"][0]
+            attention_mask = encoding["attention_mask"][0]
+            word_ids = encoding.word_ids(batch_index=0)
 
-            for word, tag in zip(words, tags):
-                tokens = self.tokenizer.tokenize(word)
-                token_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+            # Align tags to subwords
+            aligned_tags = []
+            for word_id in word_ids:
+                if word_id is None: # it is special token (aka CLS, SEP or PAD)
+                    aligned_tags.append(-1)
+                else: 
+                    aligned_tags.append(sentence_tags[word_id]) 
 
-                if len(word_piece_ids) + len(token_ids) + 1 >= self.max_len: #make sure that len of current sentence embedding (+1 for sep) is not begger than max_len 
-                    break 
-                    
-                word_piece_ids.extend(token_ids) 
-                aligned_tags.extend([tag] * len(token_ids))  # Repeat tag for each subword
-
-            
-            word_piece_ids.append(self.tokenizer.sep_token_id) #add sep token in the beginning of a sentence
-            aligned_tags.append(-1)  #tag for SEP is padding
-
-            # Add padding to match max_len
-            padding_length = self.max_len - len(word_piece_ids)
-            word_piece_ids.extend([self.tokenizer.pad_token_id] * padding_length)
-            aligned_tags.extend([-1] * padding_length)
-            
-            #compute attention_mask
-            attention_mask = [1 if idx != self.tokenizer.pad_token_id else 0 for idx in word_piece_ids]
-
-            all_input_ids.append(torch.tensor(word_piece_ids))
+            all_input_ids.append(input_ids)
+            all_attention_masks.append(attention_mask)
             all_padded_tags.append(torch.tensor(aligned_tags))
-            all_attention_masks.append(torch.tensor(attention_mask))
+            all_word_ids.append(word_ids)
+        
+        self.word_ids = all_word_ids
 
         return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks)
 
