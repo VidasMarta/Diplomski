@@ -83,8 +83,6 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
 
             # Pad tags
             sentence_tags = torch.tensor(sentence_tags)
-            print("ovo je shape: ", sentence_tags.shape)
-            print("ovo je shape[0]:", sentence_tags.shape[0])
             padded_tags = self._pad_or_truncate(sentence_tags, (0, self.max_len - sentence_tags.shape[0]), -1)
 
             # Generate word_level_mask
@@ -104,7 +102,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         
         self.word_level_masks = torch.stack(all_word_level_mask)
 
-        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks), self.word_level_masks
+        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks) #, self.word_level_masks
 
 
     def get_embedding(self, token_list, attention_masks): 
@@ -170,7 +168,7 @@ class Embedding_bioELMo(Embedding):
         padding_mask = torch.where(tags_padded != -1, 1, 0)  
 
         self.crf_attention_mask = padding_mask
-        return tokens_padded, tags_padded, padding_mask, padding_mask 
+        return tokens_padded, tags_padded, padding_mask#, padding_mask 
 
     def get_embedding(self, tokens, attention_masks):  
         '''
