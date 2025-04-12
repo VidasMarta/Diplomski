@@ -30,10 +30,10 @@ class Evaluation:
         all_pred_tags = []
         with torch.no_grad():
             final_loss = 0
-            for (tokens, tags, att_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
-                batch_embeddings = word_embeddings_model.get_embedding(tokens, att_mask)
+            for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
+                batch_embeddings = word_embeddings_model.get_embedding(tokens, emb_att_mask)
                 batch_embeddings = batch_embeddings.to(device)
-                batch_attention_masks = att_mask.to(device)
+                batch_attention_masks = crf_mask.to(device) #emb_att_mask.to(device)
                 if char_embedding != None:
                     batch_char_embedding = char_embedding.to(device)
                 else:
@@ -45,6 +45,7 @@ class Evaluation:
 
                 pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
 
+                #remove padding
                 relevant_true_tags = self.emb_model.get_relevant_tags(tags, num_to_tag_dict)
                 # Predicted tags already have no padding, so just map them to strings
                 relevant_pred_tags = [[num_to_tag_dict[int(tag)] for tag in seq] for seq in pred_tags]

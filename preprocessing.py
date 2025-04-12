@@ -12,6 +12,7 @@ class Embedding(ABC): #For word embeddings
         self.max_len = max_len
         self.embedding_model_name = embedding_model_name
         self.embedding_dim = None
+        self.crf_attention_mask = None
 
     @staticmethod
     def create(embedding_model_name, dataset_name, max_len=256):
@@ -32,6 +33,12 @@ class Embedding(ABC): #For word embeddings
         else:
             raise ValueError(f"Embedding {embedding_model_name} not supported, bioBERT and bioELMo are.")
         
+    def _pad_or_truncate(self, seq, pad, pad_value):
+        if seq.size(0) < self.max_len:
+            return nn.functional.pad(input=seq, pad=pad, value=pad_value)
+        else:
+            return seq[:self.max_len]
+        
     @abstractmethod
     def get_embedding(self, tokens):
         pass
@@ -41,7 +48,7 @@ class Embedding(ABC): #For word embeddings
         pass
 
     @abstractmethod
-    def get_relevant_tags(self, tags, num_to_tag_dict, is_prediction=False):
+    def get_relevant_tags(self, tags, num_to_tag_dict):
         pass
     
 class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://github.com/naver/biobert-pretrained)
@@ -52,13 +59,12 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         bioBERT_setup_path = os.path.join(settings.EMBEDDINGS_PATH, "bioBERT_setup") 
         self.tokenizer = AutoTokenizer.from_pretrained(bioBERT_setup_path)
         self.bert = AutoModel.from_pretrained(bioBERT_setup_path)
-        self.word_ids = None
 
     def tokenize_and_pad_text(self, text, tags):
         all_input_ids = []
         all_padded_tags = []
         all_attention_masks = []
-        all_word_ids = []  # need this for evaluation
+        all_word_level_mask = [] #need this for crf and evaluation
 
         for sentence, sentence_tags in zip(text, tags):
             encoding = self.tokenizer(
@@ -75,22 +81,30 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             attention_mask = encoding["attention_mask"][0]
             word_ids = encoding.word_ids(batch_index=0)
 
-            # Align tags to subwords
-            aligned_tags = []
-            for word_id in word_ids:
-                if word_id is None: # it is special token (aka CLS, SEP or PAD)
-                    aligned_tags.append(-1)
+            # Pad tags
+            sentence_tags = torch.tensor(sentence_tags)
+            print("ovo je shape: ", sentence_tags.shape)
+            print("ovo je shape[0]:", sentence_tags.shape[0])
+            padded_tags = self._pad_or_truncate(sentence_tags, (0, self.max_len - sentence_tags.shape[0]), -1)
+
+            # Generate word_level_mask
+            word_level_mask = []
+            seen_word_id = set()
+            for word_id in word_ids: 
+                if word_id is None or word_id in seen_word_id: #it is special token (aka CLS, SEP or PAD) or it's a subword
+                    word_level_mask.append(0)
                 else: 
-                    aligned_tags.append(sentence_tags[word_id]) 
+                    word_level_mask.append(1)
+                    seen_word_id.add(word_id)
 
             all_input_ids.append(input_ids)
             all_attention_masks.append(attention_mask)
-            all_padded_tags.append(torch.tensor(aligned_tags))
-            all_word_ids.append(word_ids)
+            all_padded_tags.append(padded_tags)
+            all_word_level_mask.append(torch.tensor(word_level_mask))
         
-        self.word_ids = all_word_ids
+        self.word_level_masks = torch.stack(all_word_level_mask)
 
-        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks)
+        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks), self.word_level_masks
 
 
     def get_embedding(self, token_list, attention_masks): 
@@ -113,34 +127,21 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences.  Embeddings and attention masks saved!")
     
-    def get_relevant_tags(self, tags, num_to_tag_dict, is_prediction=False): 
+    def get_relevant_tags(self, tags, num_to_tag_dict): 
         all_relevant_tags = []
         for i in range(len(tags)): 
             tag_seq = tags[i] #remove padding and get only one tag per word (for subword cases ignore second tag, it's the same)
-            batch_word_ids = self.word_ids[i] #word_id is the same for subwords of one word
+            word_mask = self.word_level_masks[i]
                             
             relevant_tags = []
-            seen_word_ids = set()
-
-            tag_idx = 0
-
-            for j, word_id in enumerate(batch_word_ids):
-                if word_id is None or word_id in seen_word_ids: #word_id is None for padding and special tokens (aka PAD, SEP, CLS), if word_in already seen (it's subword)
+            for j, mask_value in enumerate(word_mask):
+                if mask_value != 1: 
                     continue
+                else:
+                    tag = int(tag_seq[j])
+                    if tag != -1:
+                        relevant_tags.append(num_to_tag_dict[tag]) #for seqeval tags have to be strings
 
-                if is_prediction: #prediction tags don't have padding (attention mask is used when predicting)
-                    if tag_idx < len(tag_seq):
-                        relevant_tags.append(num_to_tag_dict[int(tag_seq[tag_idx])]) #for seqeval tags have to be strings
-                        tag_idx += 1
-                    else:
-                        print(f"[Warning] Ran out of predicted tags at position {tag_idx}, word_id {word_id}")
-                        break 
-
-                elif int(tag_seq[j]) != -1:
-                    relevant_tags.append(num_to_tag_dict[int(tag_seq[j])])
-
-                seen_word_ids.add(word_id)
-                
             all_relevant_tags.append(relevant_tags)
 
         return all_relevant_tags
@@ -156,13 +157,6 @@ class Embedding_bioELMo(Embedding):
         self.embedding_dim = 1024  # Dimensionality of BioELMo embeddings
         self.max_len = max_len
 
-    
-    def _pad_or_truncate(self, seq, pad, pad_value):
-        if seq.size(0) < self.max_len:
-            return nn.functional.pad(input=seq, pad=pad, value=pad_value)
-        else:
-            return seq[:self.max_len]
-
         
     def tokenize_and_pad_text(self, text, tags): 
         sentences_list = [["".join(word) for word in line] for line in text]
@@ -170,12 +164,13 @@ class Embedding_bioELMo(Embedding):
 
         tensor_tags = [torch.tensor(t) for t in tags] 
 
-        tokens_padded = torch.stack([self._pad_or_truncate(seq, (0, 0, 0, self.max_len - seq.shape[0]), 0) for seq in tokenized_text])    
+        tokens_padded = torch.stack([self._pad_or_truncate(seq, (0, 0, 0, self.max_len - seq.shape[0]), 0) for seq in tokenized_text])  #TODO  
         tags_padded = torch.stack([self._pad_or_truncate(seq, (0, self.max_len - seq.shape[0]), -1) for seq in tensor_tags])         
 
         padding_mask = torch.where(tags_padded != -1, 1, 0)  
 
-        return tokens_padded, tags_padded, padding_mask  
+        self.crf_attention_mask = padding_mask
+        return tokens_padded, tags_padded, padding_mask, padding_mask 
 
     def get_embedding(self, tokens, attention_masks):  
         '''
@@ -205,7 +200,7 @@ class Embedding_bioELMo(Embedding):
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
 
-    def get_relevant_tags(self, tags, num_to_tag_dict, is_prediction=False):
+    def get_relevant_tags(self, tags, num_to_tag_dict):
         all_relevant_tags = []
         for i in range(len(tags)):
             tag_seq = tags[i]
