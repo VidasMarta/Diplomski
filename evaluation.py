@@ -1,5 +1,6 @@
 import itertools
 import seqeval.metrics
+import seqeval.scheme
 import torch
 #from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, f1_score
 import numpy as np
@@ -8,7 +9,12 @@ import seqeval
 
 class Evaluation:
     def __init__(self, emb_model, tagging_scheme = 'IOB1'):
-        self.tagging_scheme = tagging_scheme
+        if tagging_scheme == 'IOB1':
+            self.tagging_scheme = seqeval.scheme.IOB1
+        elif tagging_scheme == 'IOBES':
+            self.tagging_scheme = seqeval.scheme.IOBES
+        else:
+            raise ValueError(f"Tagging scheme {tagging_scheme} not supported")
         self.emb_model = emb_model
         
     def evaluate(self, data_loader, model, device, word_embeddings_model, char_embeddings, num_to_tag_dict, logger, epoch = -1):
