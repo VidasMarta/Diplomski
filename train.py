@@ -78,8 +78,8 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
         if char_emb is not None:
             train_char_embeddings = char_emb.batch_cnn_embedding_generator(text_train, max_len, batch_size)
             val_char_embeddings = char_emb.batch_cnn_embedding_generator(text_val, max_len, batch_size)
-        #train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
-        #logger.log_train_loss(epoch+1, train_loss)
+        train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
+        logger.log_train_loss(epoch+1, train_loss)
         #torch.cuda.empty_cache()
 
         # Validation
