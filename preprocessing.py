@@ -206,6 +206,7 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
         super(CharEmbeddingCNN, self).__init__()
        
         #self.vocab = vocab if "<UNK>" in vocab else vocab + "<UNK>"
+        self.vocab = vocab
         self.vocab_size = len(self.vocab)
         self.char_to_idx = {char: idx for idx, char in enumerate(self.vocab)}
         #self.unk_idx = self.char_to_idx["<UNK>"]
