@@ -52,14 +52,14 @@ class Evaluation:
                 pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
 
                 #remove padding
-                relevant_true_tags = [[num_to_tag_dict[int(tag)] for tag in seq if int(tag) != -1] for seq in pred_tags]
+                relevant_true_tags = [[num_to_tag_dict[int(tag)] for tag in seq if int(tag) != -1] for seq in tags]
 
                 # Predicted tags already have no padding, so just map them to strings
                 relevant_pred_tags = [[num_to_tag_dict[int(tag)] for tag in seq ] for seq in pred_tags]
 
-                for p, t in zip(relevant_pred_tags, relevant_true_tags):
+                """ for p, t in zip(relevant_pred_tags, relevant_true_tags):
                     if len(p) != len(t):
-                        print(f"len missmatch: true {t}, pred {p}")
+                        print(f"len missmatch: true {t}, pred {p}") """
                 
                 all_true_tags.extend(relevant_true_tags)  
                 all_pred_tags.extend(relevant_pred_tags)
