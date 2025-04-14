@@ -101,17 +101,15 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             new_tags.append(-1)
             new_tags.extend(sentence_tags)
             new_tags.append(-1)
-            sentence_tags = torch.tensor(new_tags)
-            padded_tags = self._pad_or_truncate(sentence_tags, (0, self.max_len - sentence_tags.shape[0]), -1)
+            new_tags = torch.tensor(new_tags)
+            padded_tags = self._pad_or_truncate(new_tags, (0, self.max_len - new_tags.shape[0]), -1)
 
             all_input_ids.append(input_ids)
             all_attention_masks.append(attention_mask)
             all_padded_tags.append(padded_tags)
             all_word_level_masks.append(word_level_mask)
 
-        self.word_level_masks = torch.stack(all_word_level_masks)  # Save for later use
-
-        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks), self.word_level_masks
+        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks), torch.stack(all_word_level_masks)
 
 
     def get_embedding(self, token_list, attention_masks): 
@@ -293,3 +291,59 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
             embeddings = self.forward(batch_tensor)  # (B * L, emb_size)
             embeddings = embeddings.view(len(batch_sentences), max_sent_len, -1)  # (B, L, emb_size)
             yield embeddings
+
+from models import BiRNN_CRF
+# Example usage
+if __name__ == "__main__":
+    # Dummy tag mapping
+    tag2num = {'O': 0, 'B-Disease': 1, 'I-Disease': 2}
+    num2tag = {v: k for k, v in tag2num.items()}
+
+    # Dummy data: two tokenized sentences and corresponding tags
+    sentences = [
+        ["The", "patient", "was", "diagnosed", "with", "pneumonia", "."],
+        ["He", "has", "diabetes", "mellitus"]
+    ]
+
+    tags = [
+        [0, 0, 0, 0, 0, 1, 0],   # "pneumonia" is a disease
+        [0, 0, 1, 2]             # "diabetes mellitus" is a multi-token entity
+    ]
+
+    # Create the embedding instance
+    embedder = Embedding.create("bioBERT", "dummy_dataset", max_len=16)
+
+    # Get token ids, tag ids, attention masks, and word-level masks
+    input_ids, padded_tags, attention_masks, word_level_mask = embedder.tokenize_and_pad_text(sentences, tags)
+
+    # Get embeddings from BioBERT
+    embeddings = embedder.get_embedding(input_ids, attention_masks)
+
+    # Verify output shapes
+    print(f"Input IDs shape: {input_ids.shape}")            # [batch, max_len]
+    print(f"Padded Tags shape: {padded_tags.shape}")        # [batch, max_len]
+    print(f"Attention Mask shape: {attention_masks.shape}") # [batch, max_len]
+    print(f"Embeddings shape: {embeddings.shape}")          # [batch, max_len, 768]
+    print(f"Word-level mask: {word_level_mask.shape}")      # [batch, max_len]
+
+
+    # Convert back predicted tags for evaluation/debugging
+    decoded_tags = embedder.get_relevant_tags(padded_tags, num2tag, word_level_mask)
+    print(f"Decoded tags: {decoded_tags}")
+    
+    model_args = dict()
+    model_args['cell'] = 'lstm'
+    model_args['hidden_size'] = 512
+    model_args['num_layers'] = 1
+    model_args['dropout'] = 0.3
+    model_args['use_crf'] = True
+    model_args['loss'] = "CRF"
+
+    model = BiRNN_CRF(3, model_args, embedder.embedding_dim)
+    logits = model(embeddings, padded_tags, word_level_mask)
+    preds = model.predict(embeddings, word_level_mask)
+
+    pred_tags = [[num2tag[int(tag)] for tag in seq ] for seq in preds]
+
+    print(f"Predicted tags: {pred_tags}")
+

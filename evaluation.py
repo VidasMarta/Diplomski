@@ -64,7 +64,7 @@ class Evaluation:
 
                 for p, t in zip(relevant_pred_tags, relevant_true_tags):
                     if len(p) != len(t):
-                        print(f"len missmatch: true {t}, pred {p}") 
+                        print(f"len missmatch: true {len(t)}, pred {len(p)}") 
                 
                 all_true_tags.extend(relevant_true_tags)  
                 all_pred_tags.extend(relevant_pred_tags)
