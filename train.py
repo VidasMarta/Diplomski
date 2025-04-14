@@ -157,10 +157,10 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
         test_char_embeddings = char_emb.batch_cnn_embedding_generator(text_test, max_len, batch_size)
         
     
-    tokens_train_padded, tags_train_padded, attention_masks_train, crf_masks_train = word_embeddings_model.tokenize_and_pad_text(text_train, tags_train)
-    train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train, crf_masks_train)
-    tokens_val_padded, tags_val_padded, attention_masks_val, crf_masks_val = word_embeddings_model.tokenize_and_pad_text(text_val, tags_val)
-    val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val, crf_masks_val)
+    tokens_train_padded, tags_train_padded, attention_masks_train = word_embeddings_model.tokenize_and_pad_text(text_train, tags_train)
+    train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)
+    tokens_val_padded, tags_val_padded, attention_masks_val = word_embeddings_model.tokenize_and_pad_text(text_val, tags_val)
+    val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
 
     train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size)
     valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
@@ -170,8 +170,8 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
         device, num_to_tag, eval, logger)
 
     #Evaluate on test set
-    tokens_test_padded, tags_test_padded, attention_masks_test, crf_masks_test = word_embeddings_model.tokenize_and_pad_text(text_test, tags_test)
-    test_data = Dataset(tokens_test_padded, tags_test_padded, attention_masks_test, crf_masks_test)
+    tokens_test_padded, tags_test_padded, attention_masks_test = word_embeddings_model.tokenize_and_pad_text(text_test, tags_test)
+    test_data = Dataset(tokens_test_padded, tags_test_padded, attention_masks_test)
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
 
     best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
