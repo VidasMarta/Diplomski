@@ -46,6 +46,10 @@ class Embedding(ABC): #For word embeddings
     @abstractmethod
     def tokenize_and_pad_text(self, text, tags):
         pass
+
+    @abstractmethod
+    def get_relevant_tags(self, tags, num_to_tag_dict):
+        pass
     
 class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://github.com/naver/biobert-pretrained)
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
@@ -60,6 +64,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         all_input_ids = []
         all_padded_tags = []
         all_attention_masks = []
+        all_word_level_masks = [] #needed for crf
 
         for sentence, sentence_tags in zip(text, tags):
             encoding = self.tokenizer(
@@ -74,16 +79,39 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
 
             input_ids = encoding["input_ids"][0]
             attention_mask = encoding["attention_mask"][0]
+            word_ids = encoding.word_ids(batch_index=0)
 
-            # Pad tags
-            sentence_tags = torch.tensor(sentence_tags)
+            # Create word-level mask: 1 for first subword of each word
+            word_level_mask = []
+            prev_word_id = None
+            for word_id in word_ids:
+                if word_id is None or word_id == prev_word_id:
+                    word_level_mask.append(0)
+                else:
+                    word_level_mask.append(1)
+                    prev_word_id = word_id
+
+            # Pad word-level mask to max_len
+            word_level_mask = torch.tensor(
+                self._pad_or_truncate(torch.tensor(word_level_mask), (0, self.max_len - len(word_level_mask)), 0)
+            )
+
+            # add -1 tag for cls and sep tokens and pad tags
+            new_tags = []
+            new_tags.append(-1)
+            new_tags.extend(sentence_tags)
+            new_tags.append(-1)
+            sentence_tags = torch.tensor(new_tags)
             padded_tags = self._pad_or_truncate(sentence_tags, (0, self.max_len - sentence_tags.shape[0]), -1)
 
             all_input_ids.append(input_ids)
             all_attention_masks.append(attention_mask)
             all_padded_tags.append(padded_tags)
+            all_word_level_masks.append(word_level_mask)
 
-        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks) 
+        self.word_level_masks = torch.stack(all_word_level_masks)  # Save for later use
+
+        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks), self.word_level_masks
 
 
     def get_embedding(self, token_list, attention_masks): 
@@ -105,6 +133,16 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_embeddings.npy", embeddings_list)
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences.  Embeddings and attention masks saved!")
+
+    def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
+        all_relevant_tags = []
+        for tag_seq, mask in zip(tags, word_level_masks):
+            relevant_tags = []
+            for tag, is_first_subword in zip(tag_seq, mask):
+                if is_first_subword and tag != -1:
+                    relevant_tags.append(num_to_tag_dict[int(tag)])
+            all_relevant_tags.append(relevant_tags)
+        return all_relevant_tags
 
 class Embedding_bioELMo(Embedding):
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
@@ -130,7 +168,7 @@ class Embedding_bioELMo(Embedding):
         padding_mask = torch.where(tags_padded != -1, 1, 0)  
 
         self.crf_attention_mask = padding_mask
-        return tokens_padded, tags_padded, padding_mask 
+        return tokens_padded, tags_padded, None, padding_mask #embedding doesn't need attention mask
 
     def get_embedding(self, tokens, attention_masks):  
         '''
@@ -160,54 +198,98 @@ class Embedding_bioELMo(Embedding):
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
 
+    def get_relevant_tags(self, tags, num_to_tag_dict, mask):
+        return [[num_to_tag_dict[int(tag)] for tag in seq if int(tag) != -1] for seq in tags]
+
 
 class CharEmbeddingCNN(nn.Module): #For char embeddings
-    def __init__(self, vocab, emb_size,  kernel_size, max_word_length): #, args, number_of_classes):
+    def __init__(self, vocab, emb_size, feature_size, max_word_length, kernel_sizes = [7, 3], dropout=0.1): #, args, number_of_classes):
         super(CharEmbeddingCNN, self).__init__()
-        self.vocab = vocab
-        self.vocab += "<UNK>"
+       
+        self.vocab = vocab if "<UNK>" in vocab else vocab + ["<UNK>"]
+        self.vocab_size = len(self.vocab)
+        self.char_to_idx = {char: idx for idx, char in enumerate(self.vocab)}
+        self.unk_idx = self.char_to_idx["<UNK>"]
         self.max_word_length = max_word_length
+        self.embedding_dim = emb_size
 
-        self.seq = nn.Sequential(
-            nn.Conv1d(in_channels=len(self.vocab), out_channels=emb_size, kernel_size=kernel_size, bias=False),
-            nn.Tanh(),
-            nn.MaxPool1d(kernel_size=max_word_length-kernel_size+1)
+        # Define deep CNN layers (inspired by https://github.com/ahmedbesbes/character-based-cnn/blob/master/src/model.py)
+        self.dropout_input = nn.Dropout2d(dropout)
+
+        self.conv1 = nn.Sequential(
+            nn.Conv1d(self.vocab_size, feature_size, kernel_size=kernel_sizes[0]),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=3)
+        )
+        self.conv2 = nn.Sequential(
+            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[0]),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=3)
+        )
+        self.conv3 = nn.Sequential(
+            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[1]),
+            nn.ReLU()
+        )
+        self.conv4 = nn.Sequential(
+            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[1]),
+            nn.ReLU()
+        )
+        self.conv5 = nn.Sequential(
+            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[1]),
+            nn.ReLU()
+        )
+        self.conv6 = nn.Sequential(
+            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[1]),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=3)
         )
 
+        with torch.no_grad():
+            dummy = torch.zeros(1, self.vocab_size, self.max_word_length)
+            out = self._forward_conv(dummy)
+            self.flatten_dim = out.view(1, -1).shape[1]
+
+        self.fc = nn.Linear(self.flatten_dim, emb_size)
+
+    def _forward_conv(self, x):
+        x = self.dropout_input(x)
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
+        x = self.conv6(x)
+        return x
+
     def forward(self, x):
-        return self.seq(x).squeeze()
+        x = self._forward_conv(x)
+        x = x.view(x.size(0), -1)
+        return self.fc(x)
+    
+    def _word_to_ohe(self, word): # make oh representation of a word and pad to max_word_len
+        idxs = [self.char_to_idx.get(c, self.unk_idx) for c in word[:self.max_word_length]] #get oh encoding for each char in word
+        one_hot = torch.eye(self.vocab_size)[idxs].T  # make 0/1 matrix with shape (vocab_size, len)
+        padded = nn.functional.pad(one_hot, (0, self.max_word_length - one_hot.shape[1]))  # (vocab_size, max_word_length)
+        return padded
    
     # preraden kod s https://www.kaggle.com/code/anubhavchhabra/character-level-word-embeddings-using-1d-cnn
-    def batch_cnn_embedding_generator(self, text, max_sentence_length, batch_size):                 
-        char_to_idx_map = {char: idx for idx, char in enumerate(self.vocab)}
-        unk_index = len(self.vocab) - 1 
-
-        ohe_characters = torch.eye(n=len(self.vocab))
-
+    def batch_cnn_embedding_generator(self, text, batch_size):                 
         for i in range(0, len(text), batch_size):
             batch_sentences = text[i:i + batch_size]
-            batch_embeddings = []
-            for words in batch_sentences:
-                ohe_words = torch.empty(size=(0, len(self.vocab), self.max_word_length))
-                for word in words:
-                    idx_representation = [char_to_idx_map.get(char, unk_index) for char in word] 
-                    ohe_representation = ohe_characters[idx_representation].T # Shape: (vocab_size, word_length)
-                    padded_ohe_representation = nn.functional.pad(input=ohe_representation, pad=(0, self.max_word_length-len(word)))
-                    ohe_words = torch.cat((ohe_words, padded_ohe_representation.unsqueeze(dim=0))) #Shape: (num_words, vocab_size, max_word_length)
+            max_sent_len = max(len(sent) for sent in batch_sentences)
 
-                if len(ohe_words) > max_sentence_length:
-                    ohe_words = ohe_words[:max_sentence_length]
-                elif 0 < len(ohe_words) < max_sentence_length:
-                    ohe_words = torch.cat((
-                        ohe_words, 
-                        torch.zeros((max_sentence_length - len(ohe_words), len(self.vocab), self.max_word_length)))
-                    )
-                elif len(ohe_words) == 0:
-                    ohe_words = torch.zeros(max_sentence_length, len(self.vocab))
+            word_tensors = []
+            for sentence in batch_sentences:
+                sent_tensors = []
+                for word in sentence[:max_sent_len]:
+                    ohe = self._word_to_ohe(word).unsqueeze(0)
+                    sent_tensors.append(ohe)
+                while len(sent_tensors) < max_sent_len:
+                    sent_tensors.append(torch.zeros((1, self.vocab_size, self.max_word_length)))
+                word_tensors.append(torch.cat(sent_tensors, dim=0))  # (max_sent_len, vocab_size, max_word_length)
 
-                embedding = self.forward(ohe_words)
-                batch_embeddings.append(embedding) 
-
-            batch_embeddings = torch.stack(batch_embeddings)
-
-            yield batch_embeddings
+            batch_tensor = torch.stack(word_tensors)  # (batch_size, max_sent_len, vocab_size, max_word_length)
+            batch_tensor = batch_tensor.view(-1, self.vocab_size, self.max_word_length)  # (B * L, V, W)
+            embeddings = self.forward(batch_tensor)  # (B * L, emb_size)
+            embeddings = embeddings.view(len(batch_sentences), max_sent_len, -1)  # (B, L, emb_size)
+            yield embeddings

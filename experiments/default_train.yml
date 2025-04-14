@@ -9,7 +9,7 @@ model:
   use_crf: true  # Set to false if CRF is not used
   loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
   optimizer: "adam"  # Options: "adam", "sgd", "rmsprop", "adamw"
-  epochs: 300
+  epochs: 1 #300
   max_length: 256
   max_grad_norm: 5.0
   early_stopping: 10 #preporuca se izmedu 10 i 100 (obicno 10 ili 20)
@@ -18,7 +18,7 @@ model:
 # Embedding and Dataset Configuration
 settings:
   word_embedding: "bioBERT"  # Options: "bioELMo"
-  char_cnn_embedding: true #if false, ignore cnn_* settings
+  char_cnn_embedding: false #if false, ignore cnn_* settings
   cnn_vocab: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #
   cnn_max_word_len: 7 
   cnn_embedding_dim: 256

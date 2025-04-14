@@ -35,12 +35,12 @@ def define_optimizer(model, name, lr):
 def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, optimizer, device, max_grad_norm):
     model.train()
     final_loss = 0
-    for (tokens, tags, emb_att_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
+    for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
         optimizer.zero_grad()
         
         batch_embeddings = word_embeddings_model.get_embedding(tokens, emb_att_mask)
         batch_embeddings = batch_embeddings.to(device)
-        batch_attention_masks = emb_att_mask.to(device)
+        batch_attention_masks = crf_mask.to(device) #emb_att_mask.to(device)
         if char_embedding != None:
             batch_char_embedding = char_embedding.to(device)
         else:
@@ -78,12 +78,12 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
         if char_emb is not None:
             train_char_embeddings = char_emb.batch_cnn_embedding_generator(text_train, max_len, batch_size)
             val_char_embeddings = char_emb.batch_cnn_embedding_generator(text_val, max_len, batch_size)
-        train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
-        logger.log_train_loss(epoch+1, train_loss)
+        #train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
+        #logger.log_train_loss(epoch+1, train_loss)
         #torch.cuda.empty_cache()
 
         # Validation
-        val_loss = eval.evaluate(valid_data_loader, model, device, word_embeddings_model, val_char_embeddings, num_to_tag, logger, epoch+1)
+        val_loss = eval.evaluate(valid_data_loader, model, device, val_char_embeddings, num_to_tag, logger, epoch+1)
         #torch.cuda.empty_cache()
 
         # Early stopping
@@ -175,7 +175,7 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim']) 
     best_model.load_state_dict(best_model_weights)
     print("Testing")
-    eval.evaluate(test_data_loader, best_model, device, word_embeddings_model, test_char_embeddings, num_to_tag, logger)
+    eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger)
     
 if __name__ == "__main__":
     main()

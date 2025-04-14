@@ -17,7 +17,7 @@ class Evaluation:
             raise ValueError(f"Tagging scheme {tagging_scheme} not supported")
         self.emb_model = emb_model
         
-    def evaluate(self, data_loader, model, device, word_embeddings_model, char_embeddings, num_to_tag_dict, logger, epoch = -1):
+    def evaluate(self, data_loader, model, device, char_embeddings, num_to_tag_dict, logger, epoch = -1):
         '''
         Evaluate the model on the test set
         Args:
@@ -36,10 +36,10 @@ class Evaluation:
         all_pred_tags = []
         with torch.no_grad():
             final_loss = 0
-            for (tokens, tags, emb_att_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
-                batch_embeddings = word_embeddings_model.get_embedding(tokens, emb_att_mask)
+            for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
+                batch_embeddings = self.emb_model.get_embedding(tokens, emb_att_mask)
                 batch_embeddings = batch_embeddings.to(device)
-                batch_attention_masks = emb_att_mask.to(device)
+                batch_attention_masks = crf_mask.to(device) #emb_att_mask.to(device)
                 if char_embedding != None:
                     batch_char_embedding = char_embedding.to(device)
                 else:
@@ -52,9 +52,14 @@ class Evaluation:
                 pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
 
                 #remove padding
-                relevant_true_tags = [[num_to_tag_dict[int(tag)] for tag in seq if int(tag) != -1] for seq in tags]
+                relevant_true_tags = self.emb_model.get_relevant_tags(tags, num_to_tag_dict, crf_mask)
 
                 # Predicted tags already have no padding, so just map them to strings
+                for seq in pred_tags:
+                    for tag in seq:
+                        if int(tag) not in num_to_tag_dict.keys():
+                            print("error: using tags that are not defined")
+
                 relevant_pred_tags = [[num_to_tag_dict[int(tag)] for tag in seq ] for seq in pred_tags]
 
                 for p, t in zip(relevant_pred_tags, relevant_true_tags):

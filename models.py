@@ -41,13 +41,13 @@ class BiRNN_CRF(nn.Module):
                 raise ValueError(f"Loss {model_args['loss']} not supported")
     
     # Return the loss only, does not decode tags
-    def forward(self, word_embedding, target_tag, attention_masks, char_embedding = None): 
+    def forward(self, word_embedding, target_tag, word_level_masks, char_embedding = None): 
         '''
         Forward pass of the model, computes the loss 
         Args:
             embedding: Embedding tensor with dimensions (batch_size, max_len, embedding_dim)
             target_tag: Target tag tensor with dimensions (batch_size, max_len)
-            attention_masks: Attention masks tensor with dimensions (batch_size, max_len)
+            word_level_masks: Attention masks tensor with dimensions (batch_size, max_len)
 
         Returns:
             loss: Loss value of crf or cross entropy, if crf is used, the loss is token mean
@@ -63,14 +63,14 @@ class BiRNN_CRF(nn.Module):
 
         if self.crf_tag:
             #mask = torch.squeeze(attention_masks, -2).bool() #has to be in shape (batch_size, sequence_size)
-            mask = attention_masks.bool()
+            mask = word_level_masks.bool()
             loss = -self.crf_tag.forward(tag, target_tag, mask).mean()
         else:  
             loss = self.criterion(tag.view(-1, self.num_tag), target_tag.view(-1))
         
         return loss
 
-    def predict(self, word_embedding, attention_masks, char_embedding = None): 
+    def predict(self, word_embedding, word_level_masks, char_embedding = None): 
         '''
         Predict the most likely tag sequence
         Args:
@@ -90,7 +90,7 @@ class BiRNN_CRF(nn.Module):
         
         if self.crf_tag:
             #mask = torch.squeeze(attention_masks, -2).bool()
-            mask = attention_masks.bool()
+            mask = word_level_masks.bool()
             tags = self.crf_tag.viterbi_decode(tag, mask)
             tag = [[torch.tensor(t) for t in tag] for tag in tags]
         else:
