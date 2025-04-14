@@ -205,10 +205,10 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
     def __init__(self, vocab, emb_size, feature_size, max_word_length, kernel_sizes = [7, 3], dropout=0.1): #, args, number_of_classes):
         super(CharEmbeddingCNN, self).__init__()
        
-        self.vocab = vocab if "<UNK>" in vocab else vocab + ["<UNK>"]
+        #self.vocab = vocab if "<UNK>" in vocab else vocab + "<UNK>"
         self.vocab_size = len(self.vocab)
         self.char_to_idx = {char: idx for idx, char in enumerate(self.vocab)}
-        self.unk_idx = self.char_to_idx["<UNK>"]
+        #self.unk_idx = self.char_to_idx["<UNK>"]
         self.max_word_length = max_word_length
         self.embedding_dim = emb_size
 
