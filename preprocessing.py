@@ -109,7 +109,8 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             all_padded_tags.append(padded_tags)
             all_word_level_masks.append(word_level_mask)
 
-        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks), torch.stack(all_word_level_masks)
+        self.word_level_masks = torch.stack(all_word_level_masks)
+        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks)
 
 
     def get_embedding(self, token_list, attention_masks): 
@@ -132,9 +133,9 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences.  Embeddings and attention masks saved!")
 
-    def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
+    def get_relevant_tags(self, tags, num_to_tag_dict):
         all_relevant_tags = []
-        for tag_seq, mask in zip(tags, word_level_masks):
+        for tag_seq, mask in zip(tags, self.word_level_masks):
             relevant_tags = []
             for tag, is_first_subword in zip(tag_seq, mask):
                 if is_first_subword and tag != -1:
@@ -196,7 +197,7 @@ class Embedding_bioELMo(Embedding):
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
 
-    def get_relevant_tags(self, tags, num_to_tag_dict, mask):
+    def get_relevant_tags(self, tags, num_to_tag_dict):
         return [[num_to_tag_dict[int(tag)] for tag in seq if int(tag) != -1] for seq in tags]
 
 
