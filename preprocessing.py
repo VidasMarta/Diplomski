@@ -264,10 +264,9 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
         return padded
    
     # preraden kod s https://www.kaggle.com/code/anubhavchhabra/character-level-word-embeddings-using-1d-cnn
-    def batch_cnn_embedding_generator(self, text, batch_size):                 
+    def batch_cnn_embedding_generator(self, text, max_sent_len, batch_size):                 
         for i in range(0, len(text), batch_size):
             batch_sentences = text[i:i + batch_size]
-            max_sent_len = max(len(sent) for sent in batch_sentences)
 
             word_tensors = []
             for sentence in batch_sentences:
@@ -322,7 +321,7 @@ if __name__ == "__main__":
     char_emb_size = 256
     max_word_len = 20
     char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
-    char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 1).__next__()
+    char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 16, 2).__next__()
 
 
     # Convert back predicted tags for evaluation/debugging
