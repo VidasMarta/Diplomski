@@ -9,7 +9,7 @@ model:
   use_crf: true  # Set to false if CRF is not used
   loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
   optimizer: "adam"  # Options: "adam", "sgd", "rmsprop", "adamw"
-  epochs: 1 #300
+  epochs: 300
   max_length: 256
   max_grad_norm: 5.0
   early_stopping: 10 #preporuca se izmedu 10 i 100 (obicno 10 ili 20)
@@ -17,11 +17,11 @@ model:
 
 # Embedding and Dataset Configuration
 settings:
-  word_embedding: "bioBERT"  # Options: "bioELMo"
-  char_cnn_embedding: true #if false, ignore cnn_* settings
+  word_embedding: "bioELMo"  # Options: "bioBERT"
+  char_cnn_embedding: false #if false, ignore cnn_* settings
   cnn_vocab: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #
   cnn_max_word_len: 7 
   cnn_embedding_dim: 256
   cnn_embedding_kernel_size: 3
-  dataset: "bc5cdr_json" # Other option: "ncbi_disease_json"
+  dataset: "ncbi_disease_json" # Other option: "bc5cdr_json"
   tagging_scheme : "IOB1" #Other options: IOBES (depends on how the dataset is tagged)

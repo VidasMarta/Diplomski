@@ -153,7 +153,8 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
         model_args['char_embedding_dim'] = char_emb_size
         char_kernel_size = settings_args['cnn_embedding_kernel_size']
         max_word_len = settings_args['cnn_max_word_len']
-        char_emb = CharEmbeddingCNN(vocab, char_emb_size, char_kernel_size, max_word_len)
+        # vocab, emb_size, feature_size, max_word_length, kernel_sizes = [7, 3], dropout=0.1)
+        char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
         test_char_embeddings = char_emb.batch_cnn_embedding_generator(text_test, max_len, batch_size)
         
     

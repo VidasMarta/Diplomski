@@ -316,7 +316,7 @@ if __name__ == "__main__":
     embedder = Embedding.create("bioBERT", "dummy_dataset", max_len=16)
 
     # Get token ids, tag ids, attention masks, and word-level masks
-    input_ids, padded_tags, attention_masks, word_level_mask = embedder.tokenize_and_pad_text(sentences, tags)
+    input_ids, padded_tags, attention_masks = embedder.tokenize_and_pad_text(sentences, tags)
 
     # Get embeddings from BioBERT
     embeddings = embedder.get_embedding(input_ids, attention_masks)
@@ -326,11 +326,16 @@ if __name__ == "__main__":
     print(f"Padded Tags shape: {padded_tags.shape}")        # [batch, max_len]
     print(f"Attention Mask shape: {attention_masks.shape}") # [batch, max_len]
     print(f"Embeddings shape: {embeddings.shape}")          # [batch, max_len, 768]
-    print(f"Word-level mask: {word_level_mask.shape}")      # [batch, max_len]
+
+    vocab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"
+    char_emb_size = 256
+    max_word_len = 7
+    char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
+    char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 2)
 
 
     # Convert back predicted tags for evaluation/debugging
-    decoded_tags = embedder.get_relevant_tags(padded_tags, num2tag, word_level_mask)
+    decoded_tags = embedder.get_relevant_tags(padded_tags, num2tag)
     print(f"Decoded tags: {decoded_tags}")
     
     model_args = dict()
@@ -345,7 +350,7 @@ if __name__ == "__main__":
     logits = model(embeddings, padded_tags, attention_masks)
     preds = model.predict(embeddings, attention_masks)
 
-    pred_tags = embedder.get_relevant_tags(preds, num2tag, word_level_mask) #[[num2tag[int(tag)] for tag in seq ] for seq in preds]
+    pred_tags = embedder.get_relevant_tags(preds, num2tag) #[[num2tag[int(tag)] for tag in seq ] for seq in preds]
 
     print(f"Predicted tags: {pred_tags}")
 
