@@ -272,6 +272,7 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
             for sentence in batch_sentences:
                 sent_tensors = []
                 for word in sentence[:max_sent_len]:
+                    word = word.lower() #TODO
                     ohe = self._word_to_ohe(word).unsqueeze(0)
                     sent_tensors.append(ohe)
                 while len(sent_tensors) < max_sent_len:
@@ -317,7 +318,7 @@ if __name__ == "__main__":
     print(f"Attention Mask shape: {attention_masks.shape}") # [batch, max_len]
     print(f"Embeddings shape: {embeddings.shape}")          # [batch, max_len, 768]
 
-    vocab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"
+    vocab = "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"
     char_emb_size = 256
     max_word_len = 20
     char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)

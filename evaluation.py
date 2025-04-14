@@ -60,7 +60,7 @@ class Evaluation:
                         if int(tag) not in num_to_tag_dict.keys():
                             print("error: using tags that are not defined")
 
-                relevant_pred_tags = self.emb_model.get_relevant_tags(tags, num_to_tag_dict) # [[num_to_tag_dict[int(tag)] for tag in seq ] for seq in pred_tags]
+                relevant_pred_tags = self.emb_model.get_relevant_tags(pred_tags, num_to_tag_dict) # [[num_to_tag_dict[int(tag)] for tag in seq ] for seq in pred_tags]
 
                 for p, t in zip(relevant_pred_tags, relevant_true_tags):
                     if len(p) != len(t):
