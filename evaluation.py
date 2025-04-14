@@ -39,7 +39,7 @@ class Evaluation:
             for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
                 batch_embeddings = self.emb_model.get_embedding(tokens, emb_att_mask)
                 batch_embeddings = batch_embeddings.to(device)
-                batch_attention_masks = crf_mask.to(device) #emb_att_mask.to(device)
+                batch_attention_masks = emb_att_mask.to(device) #crf_mask.to(device)
                 if char_embedding != None:
                     batch_char_embedding = char_embedding.to(device)
                 else:
@@ -60,7 +60,7 @@ class Evaluation:
                         if int(tag) not in num_to_tag_dict.keys():
                             print("error: using tags that are not defined")
 
-                relevant_pred_tags = [[num_to_tag_dict[int(tag)] for tag in seq ] for seq in pred_tags]
+                relevant_pred_tags = self.emb_model.get_relevant_tags(tags, num_to_tag_dict, crf_mask) # [[num_to_tag_dict[int(tag)] for tag in seq ] for seq in pred_tags]
 
                 for p, t in zip(relevant_pred_tags, relevant_true_tags):
                     if len(p) != len(t):

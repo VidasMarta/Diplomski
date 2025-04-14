@@ -340,10 +340,10 @@ if __name__ == "__main__":
     model_args['loss'] = "CRF"
 
     model = BiRNN_CRF(3, model_args, embedder.embedding_dim)
-    logits = model(embeddings, padded_tags, word_level_mask)
-    preds = model.predict(embeddings, word_level_mask)
+    logits = model(embeddings, padded_tags, attention_masks)
+    preds = model.predict(embeddings, attention_masks)
 
-    pred_tags = [[num2tag[int(tag)] for tag in seq ] for seq in preds]
+    pred_tags = embedder.get_relevant_tags(preds, num2tag, word_level_mask) #[[num2tag[int(tag)] for tag in seq ] for seq in preds]
 
     print(f"Predicted tags: {pred_tags}")
 
