@@ -167,7 +167,7 @@ class Embedding_bioELMo(Embedding):
         padding_mask = torch.where(tags_padded != -1, 1, 0)  
 
         self.crf_attention_mask = padding_mask
-        return tokens_padded, tags_padded, None, padding_mask #embedding doesn't need attention mask
+        return tokens_padded, tags_padded, padding_mask 
 
     def get_embedding(self, tokens, attention_masks):  
         '''
@@ -202,52 +202,46 @@ class Embedding_bioELMo(Embedding):
 
 
 class CharEmbeddingCNN(nn.Module): #For char embeddings
-    def __init__(self, vocab, emb_size, feature_size, max_word_length, kernel_sizes = [7, 3], dropout=0.1): #, args, number_of_classes):
+    def __init__(self, vocab, emb_size, feature_size, max_word_length, dropout=0.1): #, args, number_of_classes):
         super(CharEmbeddingCNN, self).__init__()
        
         #self.vocab = vocab if "<UNK>" in vocab else vocab + "<UNK>"
         self.vocab = vocab
         self.vocab_size = len(self.vocab)
         self.char_to_idx = {char: idx for idx, char in enumerate(self.vocab)}
-        #self.unk_idx = self.char_to_idx["<UNK>"]
+        self.unk_idx = self.char_to_idx.get("<UNK>", 0) 
         self.max_word_length = max_word_length
         self.embedding_dim = emb_size
 
         # Define deep CNN layers (inspired by https://github.com/ahmedbesbes/character-based-cnn/blob/master/src/model.py)
-        self.dropout_input = nn.Dropout2d(dropout)
+        self.dropout_input = nn.Dropout1d(dropout)
 
+        # Conv layer block 1
         self.conv1 = nn.Sequential(
-            nn.Conv1d(self.vocab_size, feature_size, kernel_size=kernel_sizes[0]),
+            nn.Conv1d(self.vocab_size, feature_size, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool1d(kernel_size=3)
+            nn.MaxPool1d(kernel_size=2)
         )
+        
+        # Conv layer block 2
         self.conv2 = nn.Sequential(
-            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[0]),
+            nn.Conv1d(feature_size, feature_size, kernel_size=5, padding=2),
             nn.ReLU(),
-            nn.MaxPool1d(kernel_size=3)
-        )
-        self.conv3 = nn.Sequential(
-            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[1]),
-            nn.ReLU()
-        )
-        self.conv4 = nn.Sequential(
-            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[1]),
-            nn.ReLU()
-        )
-        self.conv5 = nn.Sequential(
-            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[1]),
-            nn.ReLU()
-        )
-        self.conv6 = nn.Sequential(
-            nn.Conv1d(feature_size, feature_size, kernel_size=kernel_sizes[1]),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=3)
+            nn.MaxPool1d(kernel_size=2)
         )
 
+        # Conv layer block 3
+        self.conv3 = nn.Sequential(
+            nn.Conv1d(feature_size, feature_size, kernel_size=7, padding=3),
+            nn.ReLU(),
+            nn.AdaptiveMaxPool1d(1)  # output shape (batch, features, 1)
+        )
+
+        # Calculate output size dynamically
         with torch.no_grad():
             dummy = torch.zeros(1, self.vocab_size, self.max_word_length)
-            out = self._forward_conv(dummy)
-            self.flatten_dim = out.view(1, -1).shape[1]
+            dummy_out = self._forward_conv(dummy)
+            self.flatten_dim = dummy_out.view(1, -1).shape[1]
 
         self.fc = nn.Linear(self.flatten_dim, emb_size)
 
@@ -256,14 +250,11 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-        x = self.conv6(x)
         return x
 
     def forward(self, x):
-        x = self._forward_conv(x)
-        x = x.view(x.size(0), -1)
+        x = self._forward_conv(x)  # (batch, features, 1)
+        x = x.view(x.size(0), -1)  # flatten
         return self.fc(x)
     
     def _word_to_ohe(self, word): # make oh representation of a word and pad to max_word_len
@@ -329,9 +320,9 @@ if __name__ == "__main__":
 
     vocab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"
     char_emb_size = 256
-    max_word_len = 7
+    max_word_len = 20
     char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
-    char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 2)
+    char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 1).__next__()
 
 
     # Convert back predicted tags for evaluation/debugging
@@ -346,9 +337,9 @@ if __name__ == "__main__":
     model_args['use_crf'] = True
     model_args['loss'] = "CRF"
 
-    model = BiRNN_CRF(3, model_args, embedder.embedding_dim)
-    logits = model(embeddings, padded_tags, attention_masks)
-    preds = model.predict(embeddings, attention_masks)
+    model = BiRNN_CRF(3, model_args, embedder.embedding_dim, char_emb_size)
+    logits = model(embeddings, padded_tags, attention_masks, char_embeddings)
+    preds = model.predict(embeddings, attention_masks, char_embeddings)
 
     pred_tags = embedder.get_relevant_tags(preds, num2tag) #[[num2tag[int(tag)] for tag in seq ] for seq in preds]
 
