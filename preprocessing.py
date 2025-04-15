@@ -83,31 +83,26 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
 
             # Create word-level mask: 1 for first subword of each word
             word_level_mask = []
+            aligned_tags = []
             prev_word_id = None
             for word_id in word_ids:
-                if word_id is None or word_id == prev_word_id:
+                if word_id is None: #padding or other special token (cls, sep)
                     word_level_mask.append(0)
-                else:
+                    aligned_tags.append(-1)
+                elif word_id != prev_word_id: #first subword
                     word_level_mask.append(1)
+                    aligned_tags.append(sentence_tags[word_id])
                     prev_word_id = word_id
+                else: # other subword 
+                    word_level_mask.append(0)
+                    aligned_tags.append(-1)
 
-            # Pad word-level mask to max_len
-            word_level_mask = torch.tensor(
-                self._pad_or_truncate(torch.tensor(word_level_mask), (0, self.max_len - len(word_level_mask)), 0)
-            )
-
-            # add -1 tag for cls and sep tokens and pad tags
-            new_tags = []
-            new_tags.append(-1)
-            new_tags.extend(sentence_tags)
-            new_tags.append(-1)
-            new_tags = torch.tensor(new_tags)
-            padded_tags = self._pad_or_truncate(new_tags, (0, self.max_len - new_tags.shape[0]), -1)
+            assert len(aligned_tags) == len(word_level_mask), "Aligninig not good"
 
             all_input_ids.append(input_ids)
             all_attention_masks.append(attention_mask)
-            all_padded_tags.append(padded_tags)
-            all_word_level_masks.append(word_level_mask)
+            all_padded_tags.append(torch.tensor(aligned_tags))
+            all_word_level_masks.append(torch.tensor(word_level_mask))
 
         return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks), torch.stack(all_word_level_masks)
 
@@ -294,12 +289,16 @@ if __name__ == "__main__":
     # Dummy data: two tokenized sentences and corresponding tags
     sentences = [
         ["The", "patient", "was", "diagnosed", "with", "pneumonia", "."],
-        ["He", "has", "diabetes", "mellitus"]
+        ["He", "has", "diabetes", "mellitus"],
+        ["The", "patient", "was", "diagnosed", "with", "pneumonia", "."],
+        ["Gnojna", "angina", "."]
     ]
 
     tags = [
         [0, 0, 0, 0, 0, 1, 0],   # "pneumonia" is a disease
-        [0, 0, 1, 2]             # "diabetes mellitus" is a multi-token entity
+        [0, 0, 1, 2],           # "diabetes mellitus" is a multi-token entity
+        [0, 0, 0, 0, 0, 1, 0],
+        [1, 2, 0]
     ]
 
     # Create the embedding instance
@@ -320,8 +319,8 @@ if __name__ == "__main__":
     vocab = "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"
     char_emb_size = 256
     max_word_len = 20
-    char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
-    char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 16, 2).__next__()
+    #char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
+    #char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 16, 2).__next__()
 
 
     # Convert back predicted tags for evaluation/debugging
@@ -336,9 +335,9 @@ if __name__ == "__main__":
     model_args['use_crf'] = True
     model_args['loss'] = "CRF"
 
-    model = BiRNN_CRF(3, model_args, embedder.embedding_dim, char_emb_size)
-    logits = model(embeddings, padded_tags, attention_masks, char_embeddings)
-    preds = model.predict(embeddings, attention_masks, char_embeddings)
+    model = BiRNN_CRF(3, model_args, embedder.embedding_dim) #, char_emb_size)
+    logits = model(embeddings, padded_tags, attention_masks) #, char_embeddings)
+    preds = model.predict(embeddings, attention_masks) #, char_embeddings)
 
     pred_tags = embedder.get_relevant_tags(preds, num2tag, crf_mask) #[[num2tag[int(tag)] for tag in seq ] for seq in preds]
     print(f"Predicted tags: {pred_tags}")
