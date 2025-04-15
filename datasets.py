@@ -53,10 +53,11 @@ class DatasetLoader:
 
 
 class Dataset:
-    def __init__(self, tokens, tags, attention_masks):
+    def __init__(self, tokens, tags, attention_masks, crf_masks):
         self.tokens = tokens
         self.tags = tags
         self.attention_masks = attention_masks
+        self.crf_masks = crf_masks
 
 
     def __len__(self):
@@ -67,7 +68,8 @@ class Dataset:
         return (
             self.tokens[idx], 
             self.tags[idx],  
-            self.attention_masks[idx]
+            self.attention_masks[idx],
+            self.crf_masks[idx]
         )
 
 def get_max_len(text_train): #, text_val, text_test):

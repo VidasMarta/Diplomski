@@ -35,12 +35,12 @@ def define_optimizer(model, name, lr):
 def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, optimizer, device, max_grad_norm):
     model.train()
     final_loss = 0
-    for (tokens, tags, emb_att_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
+    for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
         optimizer.zero_grad()
         
         batch_embeddings = word_embeddings_model.get_embedding(tokens, emb_att_mask)
         batch_embeddings = batch_embeddings.to(device)
-        batch_attention_masks = emb_att_mask.to(device)
+        batch_attention_masks = crf_mask.to(device) #emb_att_mask.to(device)
         if char_embedding != None:
             batch_char_embedding = char_embedding.to(device)
         else:
@@ -81,8 +81,8 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
         else:
             train_char_embeddings = None
             val_char_embeddings = None
-        train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
-        logger.log_train_loss(epoch+1, train_loss)
+        #train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
+        #logger.log_train_loss(epoch+1, train_loss)
         #torch.cuda.empty_cache()
 
         # Validation
@@ -158,10 +158,10 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
         test_char_embeddings = char_emb.batch_cnn_embedding_generator(text_test, max_len, batch_size)
         
     
-    tokens_train_padded, tags_train_padded, attention_masks_train = word_embeddings_model.tokenize_and_pad_text(text_train, tags_train)
-    train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train)
-    tokens_val_padded, tags_val_padded, attention_masks_val = word_embeddings_model.tokenize_and_pad_text(text_val, tags_val)
-    val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val)
+    tokens_train_padded, tags_train_padded, attention_masks_train, crf_mask_train = word_embeddings_model.tokenize_and_pad_text(text_train, tags_train)
+    train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train, crf_mask_train)
+    tokens_val_padded, tags_val_padded, attention_masks_val, crf_mask_val = word_embeddings_model.tokenize_and_pad_text(text_val, tags_val)
+    val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val, crf_mask_val)
 
     train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size)
     valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
@@ -171,8 +171,8 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
         device, num_to_tag, eval, logger)
 
     #Evaluate on test set
-    tokens_test_padded, tags_test_padded, attention_masks_test = word_embeddings_model.tokenize_and_pad_text(text_test, tags_test)
-    test_data = Dataset(tokens_test_padded, tags_test_padded, attention_masks_test)
+    tokens_test_padded, tags_test_padded, attention_masks_test, crf_mask_test= word_embeddings_model.tokenize_and_pad_text(text_test, tags_test)
+    test_data = Dataset(tokens_test_padded, tags_test_padded, attention_masks_test, crf_mask_test)
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
 
     best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")

@@ -48,7 +48,7 @@ class Embedding(ABC): #For word embeddings
         pass
 
     @abstractmethod
-    def get_relevant_tags(self, tags, num_to_tag_dict):
+    def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
         pass
     
 class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://github.com/naver/biobert-pretrained)
@@ -109,8 +109,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             all_padded_tags.append(padded_tags)
             all_word_level_masks.append(word_level_mask)
 
-        self.word_level_masks = torch.stack(all_word_level_masks)
-        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks)
+        return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks), torch.stack(all_word_level_masks)
 
 
     def get_embedding(self, token_list, attention_masks): 
@@ -133,9 +132,9 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences.  Embeddings and attention masks saved!")
 
-    def get_relevant_tags(self, tags, num_to_tag_dict):
+    def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
         all_relevant_tags = []
-        for tag_seq, mask in zip(tags, self.word_level_masks):
+        for tag_seq, mask in zip(tags, word_level_masks):
             relevant_tags = []
             for tag, is_first_subword in zip(tag_seq, mask):
                 if is_first_subword and tag != -1:
@@ -167,7 +166,7 @@ class Embedding_bioELMo(Embedding):
         padding_mask = torch.where(tags_padded != -1, 1, 0)  
 
         self.crf_attention_mask = padding_mask
-        return tokens_padded, tags_padded, padding_mask 
+        return tokens_padded, tags_padded, None, padding_mask 
 
     def get_embedding(self, tokens, attention_masks):  
         '''
@@ -197,7 +196,7 @@ class Embedding_bioELMo(Embedding):
         #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
         #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
 
-    def get_relevant_tags(self, tags, num_to_tag_dict):
+    def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
         return [[num_to_tag_dict[int(tag)] for tag in seq if int(tag) != -1] for seq in tags]
 
 
@@ -307,7 +306,7 @@ if __name__ == "__main__":
     embedder = Embedding.create("bioBERT", "dummy_dataset", max_len=16)
 
     # Get token ids, tag ids, attention masks, and word-level masks
-    input_ids, padded_tags, attention_masks = embedder.tokenize_and_pad_text(sentences, tags)
+    input_ids, padded_tags, attention_masks, crf_mask = embedder.tokenize_and_pad_text(sentences, tags)
 
     # Get embeddings from BioBERT
     embeddings = embedder.get_embedding(input_ids, attention_masks)
@@ -326,7 +325,7 @@ if __name__ == "__main__":
 
 
     # Convert back predicted tags for evaluation/debugging
-    decoded_tags = embedder.get_relevant_tags(padded_tags, num2tag)
+    decoded_tags = embedder.get_relevant_tags(padded_tags, num2tag, crf_mask)
     print(f"Decoded tags: {decoded_tags}")
     
     model_args = dict()
@@ -341,7 +340,6 @@ if __name__ == "__main__":
     logits = model(embeddings, padded_tags, attention_masks, char_embeddings)
     preds = model.predict(embeddings, attention_masks, char_embeddings)
 
-    pred_tags = embedder.get_relevant_tags(preds, num2tag) #[[num2tag[int(tag)] for tag in seq ] for seq in preds]
-
+    pred_tags = embedder.get_relevant_tags(preds, num2tag, crf_mask) #[[num2tag[int(tag)] for tag in seq ] for seq in preds]
     print(f"Predicted tags: {pred_tags}")
 
