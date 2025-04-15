@@ -166,7 +166,7 @@ class Embedding_bioELMo(Embedding):
         padding_mask = torch.where(tags_padded != -1, 1, 0)  
 
         self.crf_attention_mask = padding_mask
-        return tokens_padded, tags_padded, None, padding_mask 
+        return tokens_padded, tags_padded, padding_mask, padding_mask 
 
     def get_embedding(self, tokens, attention_masks):  
         '''
