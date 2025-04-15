@@ -40,7 +40,7 @@ def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, 
         
         batch_embeddings = word_embeddings_model.get_embedding(tokens, emb_att_mask)
         batch_embeddings = batch_embeddings.to(device)
-        batch_attention_masks = crf_mask.to(device) #emb_att_mask.to(device)
+        batch_attention_masks = emb_att_mask.to(device)
         if char_embedding != None:
             batch_char_embedding = char_embedding.to(device)
         else:
