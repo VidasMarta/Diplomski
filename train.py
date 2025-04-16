@@ -2,6 +2,7 @@ import argparse
 import copy
 import itertools
 import os
+import random
 import models
 from preprocessing import Embedding, CharEmbeddingCNN
 from datasets import Dataset
@@ -151,10 +152,9 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
         vocab = settings_args['cnn_vocab']
         char_emb_size = settings_args['cnn_embedding_dim']
         model_args['char_embedding_dim'] = char_emb_size
-        char_kernel_size = settings_args['cnn_embedding_kernel_size']
+        feature_size = settings_args['feature_size']
         max_word_len = settings_args['cnn_max_word_len']
-        # vocab, emb_size, feature_size, max_word_length, kernel_sizes = [7, 3], dropout=0.1)
-        char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
+        char_emb = CharEmbeddingCNN(vocab, char_emb_size, feature_size, max_word_len)
         test_char_embeddings = char_emb.batch_cnn_embedding_generator(text_test, max_len, batch_size)
         
     
@@ -180,7 +180,22 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     best_model.load_state_dict(best_model_weights)
     print("Testing")
     eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger)
-    
+
+
+def set_seed(seed: int = 42): #izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    # When running on the CuDNN backend, two further options must be set
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    # Set a fixed value for the hash seed
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    print(f"Random seed set as {seed}")
+
+
 if __name__ == "__main__":
+    #set_seed()
     main()
     #python train.py --model_name='probni'

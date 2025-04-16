@@ -289,16 +289,13 @@ if __name__ == "__main__":
     # Dummy data: two tokenized sentences and corresponding tags
     sentences = [
         ["The", "patient", "was", "diagnosed", "with", "pneumonia", "."],
-        ["He", "has", "diabetes", "mellitus"],
-        ["The", "patient", "was", "diagnosed", "with", "pneumonia", "."],
-        ["Gnojna", "angina", "."]
+        ["He", "has", "diabetes", "mellitus"]
     ]
 
     tags = [
         [0, 0, 0, 0, 0, 1, 0],   # "pneumonia" is a disease
-        [0, 0, 1, 2],           # "diabetes mellitus" is a multi-token entity
-        [0, 0, 0, 0, 0, 1, 0],
-        [1, 2, 0]
+        [0, 0, 1, 2]          # "diabetes mellitus" is a multi-token entity
+
     ]
 
     # Create the embedding instance
@@ -319,8 +316,10 @@ if __name__ == "__main__":
     vocab = "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"
     char_emb_size = 256
     max_word_len = 20
-    #char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
-    #char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 16, 2).__next__()
+    char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
+    char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 16, 2).__next__()
+
+    print(f"Char embedding shape: {char_embeddings.shape}") # [batch, max_len, 256]
 
 
     # Convert back predicted tags for evaluation/debugging
