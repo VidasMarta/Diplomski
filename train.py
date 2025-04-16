@@ -196,6 +196,6 @@ def set_seed(seed: int = 42): #izvor: https://medium.com/we-talk-data/how-to-set
 
 
 if __name__ == "__main__":
-    #set_seed()
+    set_seed()
     main()
     #python train.py --model_name='probni'
