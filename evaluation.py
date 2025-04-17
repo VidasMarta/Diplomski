@@ -84,7 +84,7 @@ class Evaluation:
             else:
                 logger.log_val_results(epoch, loss, f1_score, f1_score_strict)
             
-            return loss
+            return loss, f1_score_strict
 
         
         

@@ -70,10 +70,11 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
 
     #Initialize Variables for EarlyStopping
     best_loss = float('inf')
+    best_f1 = -1
     best_model_weights = None
     patience = int(model_args['early_stopping'])
     epochs_no_improve = 0
-    min_delta = float(model_args['min_delta'])
+    #min_delta = float(model_args['min_delta'])
 
     for epoch in range(num_epochs):
         if char_emb is not None:
@@ -87,15 +88,26 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
         #torch.cuda.empty_cache()
 
         # Validation
-        val_loss = eval.evaluate(valid_data_loader, model, device, val_char_embeddings, num_to_tag, logger, epoch+1)
+        val_loss, f1 = eval.evaluate(valid_data_loader, model, device, val_char_embeddings, num_to_tag, logger, epoch+1)
         #torch.cuda.empty_cache()
 
-        # Early stopping
-        if val_loss + min_delta < best_loss:
+        # Early stopping looking at loss
+        """ if val_loss + min_delta < best_loss:
             best_loss = val_loss
             epochs_no_improve = 0
             best_model_weights = copy.deepcopy(model.state_dict())  # Deep copy here      
             print(f"Validation loss improved to {best_loss:.4f}")
+        else:
+            epochs_no_improve += 1
+            if epochs_no_improve >= patience:
+                print(f"Early stopping triggered after {epoch+1} epochs.")
+                break """
+        #Early stopping looking at f1-score (strict)
+        if f1 > best_f1:
+            best_f1 = f1
+            epochs_no_improve = 0
+            best_model_weights = copy.deepcopy(model.state_dict())  # Deep copy here      
+            print(f"Validation f1 improved to {best_f1:.4f}")
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:

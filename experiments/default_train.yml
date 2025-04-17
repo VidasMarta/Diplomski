@@ -14,12 +14,13 @@ model:
   max_grad_norm: 5.0
   early_stopping: 10 #preporuca se izmedu 10 i 100 (obicno 10 ili 20)
   min_delta : 0.0001 #moze i 0 ili << 1 npr. 0.0001
+  attention: true #if false, ignore a_* params
 
 # Embedding and Dataset Configuration
 settings:
   word_embedding: "bioELMo"  # Options: "bioBERT"
   char_cnn_embedding: true #if false, ignore cnn_* settings
-  cnn_vocab: "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #
+  cnn_vocab: "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #Vidjeti jel se mijenja ako dodoamo velika slova u vokabular (i onda izbacimo .lower() u kodu)
   cnn_max_word_len: 20 #oko 20-30
   cnn_embedding_dim: 256
   feature_size: 256
