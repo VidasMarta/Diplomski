@@ -12,14 +12,16 @@ model:
   epochs: 300
   max_length: 256
   max_grad_norm: 5.0
-  early_stopping: 10 #preporuca se izmedu 10 i 100 (obicno 10 ili 20)
+  early_stopping: 100 #patience preporuca se izmedu 10 i 100 (obicno 10 ili 20)
   min_delta : 0.0001 #moze i 0 ili << 1 npr. 0.0001
-  attention: true #if false, ignore a_* params
+  attention: false #if false, ignore att_* params
+  att_dim: 150 #izmedu 150 i pola od hidden_size
+  att_hops: 5 #izmedu 5 i 10
 
 # Embedding and Dataset Configuration
 settings:
   word_embedding: "bioELMo"  # Options: "bioBERT"
-  char_cnn_embedding: true #if false, ignore cnn_* settings
+  char_cnn_embedding: false #if false, ignore cnn_* settings
   cnn_vocab: "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #Vidjeti jel se mijenja ako dodoamo velika slova u vokabular (i onda izbacimo .lower() u kodu)
   cnn_max_word_len: 20 #oko 20-30
   cnn_embedding_dim: 256
