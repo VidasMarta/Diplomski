@@ -334,6 +334,7 @@ if __name__ == "__main__":
     model_args['use_crf'] = True
     model_args['loss'] = "CRF"
     model_args['attention'] = True
+    model_args['att_num_of_heads'] = 2
 
     model = BiRNN_CRF(3, model_args, embedder.embedding_dim) #, char_emb_size)
     logits = model(embeddings, padded_tags, attention_masks) #, char_embeddings)
