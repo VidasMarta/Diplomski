@@ -23,7 +23,7 @@ class Logger:
         log_config_file.close()
 
 
-    def log_test_results(self, loss, f1_score_strict, precision_strict, recall_strict, f1_score, precision, recall):
+    def log_test_results(self, loss, f1_score, precision, recall, f1_score_strict, precision_strict, recall_strict):
         log_file = open(self.output_path + '/test.log',"a")
         log_file.write(f"loss: {loss}, f1_score: {f1_score}, precison: {precision}, recall:{recall}, f1_score(strict): {f1_score_strict}, precision(strict): {precision_strict}, recall(strict): {recall_strict}, time: {datetime.now() - self.init_time}\n")
         log_file.close()
