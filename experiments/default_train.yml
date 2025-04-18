@@ -15,8 +15,7 @@ model:
   early_stopping: 100 #patience preporuca se izmedu 10 i 100 (obicno 10 ili 20)
   min_delta : 0.0001 #moze i 0 ili << 1 npr. 0.0001
   attention: false #if false, ignore att_* params
-  att_dim: 150 #izmedu 150 i pola od hidden_size
-  att_hops: 5 #izmedu 5 i 10
+
 
 # Embedding and Dataset Configuration
 settings:

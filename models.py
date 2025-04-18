@@ -15,6 +15,7 @@ class BiRNN_CRF(nn.Module):
         self.dropout = model_args['dropout']
         self.use_crf = model_args['use_crf']
         self.criterion = model_args['loss']
+        self.attention = model_args['attention']
             
         self.embedding_dim = word_embedding_dim + char_embedding_dim if char_embedding_dim != None else word_embedding_dim
 
@@ -27,9 +28,14 @@ class BiRNN_CRF(nn.Module):
 
         self.dropout_tag = nn.Dropout(self.dropout)
 
-        #TODO: za attention dodati konkatenaciju izlaza iz RNN-a i contex vecotra (suma alpha_s*h_s) i onda to propustiti u Linear pa CRF
-        
-        self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
+        if self.attention:
+            # Attention layer: compute attention weights over time steps
+            #This is sentence-level attention (https://medium.com/swlh/a-simple-overview-of-rnn-lstm-and-attention-mechanism-9e844763d07b similar to this, only feed into CRF not rnn-decoder)
+            # TODO: proučiti (i implementirati (?)) token-level attention
+            self.attention_layer = nn.Linear(2*self.hidden_size, 1)
+            self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag) # *2 because of concatenation of h and context vector
+        else:
+            self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
 
         if self.use_crf:
             self.crf_tag = CRF(self.num_tag)
@@ -39,15 +45,24 @@ class BiRNN_CRF(nn.Module):
             #mozda dodati jos neke loss funkcije
             else:
                 raise ValueError(f"Loss {model_args['loss']} not supported")
+            
+    def _compute_sent_level_attention(self, h, mask):
+        attn_scores = self.attention_layer(h).squeeze(-1)  
+        attn_scores = attn_scores.masked_fill(mask == 0, -1e9)    # Mask out padded tokens
+        attn_weights = nn.functional.softmax(attn_scores, dim=1)     
+        context = torch.bmm(attn_weights.unsqueeze(1), h) 
+        context = context.repeat(1, h.size(1), 1)  # so that each h_i has the same sentence context concatenated        
+        return context
+
     
     # Return the loss only, does not decode tags
-    def forward(self, word_embedding, target_tag, word_level_masks, char_embedding = None): 
+    def forward(self, word_embedding, target_tag, attention_mask, char_embedding = None): 
         '''
         Forward pass of the model, computes the loss 
         Args:
             embedding: Embedding tensor with dimensions (batch_size, max_len, embedding_dim)
             target_tag: Target tag tensor with dimensions (batch_size, max_len)
-            word_level_masks: Attention masks tensor with dimensions (batch_size, max_len)
+            attention_mask: Attention masks tensor with dimensions (batch_size, max_len)
 
         Returns:
             loss: Loss value of crf or cross entropy, if crf is used, the loss is token mean
@@ -57,20 +72,24 @@ class BiRNN_CRF(nn.Module):
         else:
             embedding = word_embedding
         h, _ = self.rnn(embedding)
-
         o_tag = self.dropout_tag(h)
-        tag = self.hidden2tag_tag(o_tag)
 
-        if self.crf_tag:
-            #mask = torch.squeeze(attention_masks, -2).bool() #has to be in shape (batch_size, sequence_size)
-            mask = word_level_masks.bool()
+        if self.attention:
+            context = self._compute_sent_level_attention(o_tag, attention_mask)  
+            combined = torch.cat([o_tag, context], dim=-1)
+            tag = self.hidden2tag_tag(combined)
+        else:
+            tag = self.hidden2tag_tag(o_tag)
+
+        if self.use_crf:
+            mask = attention_mask.bool()
             loss = -self.crf_tag.forward(tag, target_tag, mask).mean()
         else:  
             loss = self.criterion(tag.view(-1, self.num_tag), target_tag.view(-1))
         
         return loss
 
-    def predict(self, word_embedding, word_level_masks, char_embedding = None): 
+    def predict(self, word_embedding, attention_mask, char_embedding = None): 
         '''
         Predict the most likely tag sequence
         Args:
@@ -84,18 +103,20 @@ class BiRNN_CRF(nn.Module):
         else:
             embedding = word_embedding
         h, _ = self.rnn(embedding)
-
         o_tag = self.dropout_tag(h)
-        tag = self.hidden2tag_tag(o_tag)
-        
-        if self.crf_tag:
-            #mask = torch.squeeze(attention_masks, -2).bool()
-            mask = word_level_masks.bool()
+
+        if self.attention:
+            context = self._compute_sent_level_attention(o_tag, attention_mask)  
+            combined = torch.cat([o_tag, context], dim=-1)
+            tag = self.hidden2tag_tag(combined)
+        else:
+            tag = self.hidden2tag_tag(o_tag)
+            
+        if self.use_crf:
+            mask = attention_mask.bool()
             tags = self.crf_tag.viterbi_decode(tag, mask)
             tag = [[torch.tensor(t) for t in tag] for tag in tags]
         else:
             tag = torch.argmax(tag, dim=-1)
 
         return tag
-
-        
