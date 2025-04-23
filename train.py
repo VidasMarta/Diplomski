@@ -50,8 +50,11 @@ def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, 
 
         loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
         loss.backward()
-        if max_grad_norm is not None:
-            clip_grad_norm_(model.parameters(), max_grad_norm)
+        if max_grad_norm:
+            total_norm = clip_grad_norm_(model.parameters(), max_grad_norm)
+            if torch.isnan(total_norm) or torch.isinf(total_norm):
+                print("Warning: gradient norm is NaN or Inf!")
+
 
         optimizer.step()
         final_loss += loss.item()
@@ -67,6 +70,15 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
     num_epochs = model_args['epochs']
     optimizer = define_optimizer(model, model_args['optimizer'], model_args['learning_rate'])
     model.to(device)
+
+    # Add LR scheduler, TODO: istražiti koje parametre staviti tu
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode='max',
+        factor=0.5,
+        patience=2,
+        verbose=True
+    )
 
     #Initialize Variables for EarlyStopping
     best_loss = float('inf')
@@ -91,6 +103,9 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
         val_loss, f1 = eval.evaluate(valid_data_loader, model, device, val_char_embeddings, num_to_tag, logger, epoch+1)
         #torch.cuda.empty_cache()
 
+        #Step the scheduler with validation metric (F1)
+        scheduler.step(f1)
+
         # Early stopping looking at loss
         """ if val_loss + min_delta < best_loss:
             best_loss = val_loss
@@ -107,7 +122,7 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
             best_f1 = f1
             epochs_no_improve = 0
             best_model_weights = copy.deepcopy(model.state_dict())  # Deep copy here      
-            print(f"Validation f1 improved to {best_f1:.4f}")
+            print(f"Validation f1 improved to {best_f1:.4f} in epoch {epoch+1}")
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
