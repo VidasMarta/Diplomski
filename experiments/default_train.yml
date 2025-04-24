@@ -12,7 +12,7 @@ model:
   epochs: 300
   max_length: 256
   max_grad_norm: 5.0
-  early_stopping: 20 #patience preporuca se izmedu 10 i 100 (obicno 10 ili 20)
+  early_stopping: 10 #patience preporuca se izmedu 10 i 100 (obicno 10 ili 20)
   min_delta : 0.0001 #moze i 0 ili << 1 npr. 0.0001
   attention: true #if false, ignore att_* params
   att_num_of_heads: 16 #TODO istražiti kako ovo odrediti
@@ -20,11 +20,11 @@ model:
 
 # Embedding and Dataset Configuration
 settings:
-  word_embedding: "bioELMo"  # Options: "bioBERT"
+  word_embedding: "bioBERT"  # Options: "bioBERT", "bioELMo"
   char_cnn_embedding: false #if false, ignore cnn_* settings
   cnn_vocab: "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #Vidjeti jel se mijenja ako dodoamo velika slova u vokabular (i onda izbacimo .lower() u kodu)
   cnn_max_word_len: 20 #oko 20-30
   cnn_embedding_dim: 256
   feature_size: 256
-  dataset: "ncbi_disease_json" # Other option: "bc5cdr_json"
+  dataset: "ncbi_disease_json" # Options: "bc5cdr_json", "ncbi_disease_json"
   tagging_scheme : "IOB1" #Other options: IOBES (depends on how the dataset is tagged)

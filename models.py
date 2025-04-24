@@ -30,8 +30,9 @@ class BiRNN_CRF(nn.Module):
 
         if self.attention:
             self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True) # *2 because of bidirectional
-        
-        self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
+            self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag) # *2 because of bidirectional
+        else:
+            self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
 
         if self.use_crf:
             self.crf_tag = CRF(self.num_tag)
@@ -66,7 +67,7 @@ class BiRNN_CRF(nn.Module):
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
             attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
-            tag = self.hidden2tag_tag(attention_output)
+            tag = self.hidden2tag_tag(torch.concat(attention_output, o_tag))#attention_output)
         else:
             tag = self.hidden2tag_tag(o_tag)
 
@@ -97,7 +98,7 @@ class BiRNN_CRF(nn.Module):
         if self.attention:
             padding_mask = torch.where(mask == True, False, True)
             attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
-            tag = self.hidden2tag_tag(attention_output)
+            tag = self.hidden2tag_tag(torch.concat(attention_output, o_tag))#attention_output)
         else:
             tag = self.hidden2tag_tag(o_tag)
             
