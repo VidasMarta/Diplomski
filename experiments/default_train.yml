@@ -15,9 +15,9 @@ model:
   early_stopping: 10 #patience preporuca se izmedu 10 i 100 (obicno 10 ili 20)
   min_delta : 0.0001 #moze i 0 ili << 1 npr. 0.0001
   attention: true #if false, ignore att_* params
-  local_att: true #false za samo MHA (bez lokalnog windowa)
-  local_window_size: 3 #ukupno vidi 7 tokena (sebe + 3 prije + 3 poslije) - entiteti su po par riječi pa bi ovo trebalo biti ok ?
-  att_num_of_heads: 8 #TODO istražiti kako ovo odrediti
+  att_num_of_heads: 16 #rule of thumb - d_model/h = 64 (za d_model=2*512 to je postavljenih 16)
+  att_local: true #false za samo MHA (bez lokalnog windowa)
+  att_local_window_size: 3 #ukupno vidi 7 tokena (sebe + 3 prije + 3 poslije) - entiteti su po par riječi pa bi ovo trebalo biti ok ?
 
 
 # Embedding and Dataset Configuration
