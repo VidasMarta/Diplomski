@@ -14,8 +14,9 @@ class BiRNN_CRF(nn.Module):
         self.num_layers = model_args['num_layers']   
         self.dropout = model_args['dropout']
         self.use_crf = model_args['use_crf']
-        self.criterion = model_args['loss']
         self.attention = model_args['attention']
+        self.local_att = model_args['att_local']
+        self.local_window_size = model_args['att_local_window_size']
             
         self.embedding_dim = word_embedding_dim + char_embedding_dim if char_embedding_dim != None else word_embedding_dim
 
@@ -37,12 +38,20 @@ class BiRNN_CRF(nn.Module):
         if self.use_crf:
             self.crf_tag = CRF(self.num_tag)
         else:
-            if self.criterion == 'cross_entropy':
+            if model_args['loss'] == 'cross_entropy':
                 self.criterion = nn.CrossEntropyLoss(ignore_index=-1) #to ignore padding in loss computation
             #mozda dodati jos neke loss funkcije
             else:
                 raise ValueError(f"Loss {model_args['loss']} not supported")
-
+    
+    # For a binary mask, a True value indicates that the corresponding position is not allowed to attend. 
+    def _generate_local_attention_mask(self, seq_len, window_size):
+        mask = torch.full((seq_len, seq_len), True)
+        for i in range(seq_len):
+            start = max(i-window_size, 0)
+            end = min(i+window_size+1, seq_len)
+            mask[i, start:end] = False
+        return mask
     
     # Return the loss only, does not decode tags
     def forward(self, word_embedding, target_tag, attention_mask, char_embedding = None): 
@@ -66,8 +75,13 @@ class BiRNN_CRF(nn.Module):
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
-            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
-            tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))#attention_output)
+            if self.local_att:
+                _, seq_len, _ = h.size()
+                local_att_mask = self._generate_local_attention_mask(seq_len, self.local_window_size).to(o_tag.device) 
+                attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, attn_mask=local_att_mask) 
+            else:
+                attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
+            tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
 
@@ -96,17 +110,22 @@ class BiRNN_CRF(nn.Module):
         o_tag = self.dropout_tag(h)
 
         if self.attention:
-            padding_mask = torch.where(mask == True, False, True)
-            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
-            tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))#attention_output)
+            padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
+            if self.local_att:
+                _, seq_len, _ = h.size()
+                local_att_mask = self._generate_local_attention_mask(seq_len, self.local_window_size).to(o_tag.device) 
+                attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, attn_mask=local_att_mask) 
+            else:
+                attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
+            tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
             
         if self.use_crf:
             tags = self.crf_tag.viterbi_decode(tag, mask)
-            tag = [[torch.tensor(t) for t in tag] for tag in tags]
+            predicted_tags = [[torch.tensor(t) for t in tag] for tag in tags]
         else:
-            tag = torch.argmax(tag, dim=-1)
+            predicted_tags = torch.argmax(tag, dim=-1)
 
-        return tag
+        return predicted_tags
 
