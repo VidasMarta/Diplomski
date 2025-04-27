@@ -44,13 +44,13 @@ class BiRNN_CRF(nn.Module):
             else:
                 raise ValueError(f"Loss {model_args['loss']} not supported")
     
-    # For a binary mask, a True value indicates that the corresponding position is not allowed to attend. 
-    def _generate_local_attention_mask(self, seq_len, window_size):
-        mask = torch.full((seq_len, seq_len), True)
+     
+    def _generate_local_attention_mask(self, seq_len, window_size, device):
+        mask = torch.full((seq_len, seq_len), float('-inf'), device=device)
         for i in range(seq_len):
             start = max(i-window_size, 0)
             end = min(i+window_size+1, seq_len)
-            mask[i, start:end] = False
+            mask[i, start:end] = 0
         return mask
     
     # Return the loss only, does not decode tags
@@ -77,7 +77,7 @@ class BiRNN_CRF(nn.Module):
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
             if self.local_att:
                 _, seq_len, _ = h.size()
-                local_att_mask = self._generate_local_attention_mask(seq_len, self.local_window_size).to(o_tag.device) 
+                local_att_mask = self._generate_local_attention_mask(seq_len, self.local_window_size, h.device) 
                 attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, attn_mask=local_att_mask) 
             else:
                 attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
@@ -113,7 +113,7 @@ class BiRNN_CRF(nn.Module):
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
             if self.local_att:
                 _, seq_len, _ = h.size()
-                local_att_mask = self._generate_local_attention_mask(seq_len, self.local_window_size).to(o_tag.device) 
+                local_att_mask = self._generate_local_attention_mask(seq_len, self.local_window_size, h.device) 
                 attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, attn_mask=local_att_mask) 
             else:
                 attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
