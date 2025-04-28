@@ -15,8 +15,6 @@ class BiRNN_CRF(nn.Module):
         self.dropout = model_args['dropout']
         self.use_crf = model_args['use_crf']
         self.attention = model_args['attention']
-        self.local_att = model_args['att_local']
-        self.local_window_size = model_args['att_local_window_size']
             
         self.embedding_dim = word_embedding_dim + char_embedding_dim if char_embedding_dim != None else word_embedding_dim
 
@@ -43,18 +41,7 @@ class BiRNN_CRF(nn.Module):
             #mozda dodati jos neke loss funkcije
             else:
                 raise ValueError(f"Loss {model_args['loss']} not supported")
-    
-     
-    def _generate_local_attention_mask(self, window_size, hidden_layer):
-        batch_size, seq_len, _ = hidden_layer.size()
-        base_mask = torch.full((seq_len, seq_len), -1e4, device=hidden_layer.device)
-        for i in range(seq_len):
-            start = max(i-window_size, 0)
-            end = min(i+window_size+1, seq_len)
-            base_mask[i, start:end] = 0
-        mask = base_mask.unsqueeze(0).unsqueeze(0)  
-        mask = mask.expand(batch_size, self.attention_layer.num_heads, seq_len, seq_len).reshape(batch_size * self.attention_layer.num_heads, seq_len, seq_len)
-        return mask
+
     
     # Return the loss only, does not decode tags
     def forward(self, word_embedding, target_tag, attention_mask, char_embedding = None): 
@@ -78,13 +65,7 @@ class BiRNN_CRF(nn.Module):
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
-            if self.local_att:
-                local_att_mask = self._generate_local_attention_mask(self.local_window_size, h) 
-                print(local_att_mask.size())
-                print(padding_mask.size())
-                attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, attn_mask=local_att_mask) 
-            else:
-                attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
+            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
             tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
@@ -94,7 +75,6 @@ class BiRNN_CRF(nn.Module):
         else:  
             loss = self.criterion(tag.view(-1, self.num_tag), target_tag.view(-1))
 
-        print(loss)
         return loss
 
     def predict(self, word_embedding, attention_mask, char_embedding = None): 
@@ -116,11 +96,7 @@ class BiRNN_CRF(nn.Module):
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
-            if self.local_att:
-                local_att_mask = self._generate_local_attention_mask(self.local_window_size, h) 
-                attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, attn_mask=local_att_mask) 
-            else:
-                attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
+            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
             tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
