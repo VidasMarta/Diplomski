@@ -229,6 +229,7 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
 
     model_args['bert_finetuning'] = settings_args['bert_finetuning']
+    model_args['word_embedding'] = settings_args['word_embedding']
     train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
         word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
         device, num_to_tag, eval, logger)
