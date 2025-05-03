@@ -32,9 +32,9 @@ class BiRNN_CRF(nn.Module):
             #self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag) # *2 because of bidirectional
             self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True)
             if self.cell == 'lstm':
-                self.rnn2 = nn.LSTM(self.hidden_size*4, self.hidden_size*2, self.num_layers, bidirectional=True, batch_first=True)
+                self.rnn2 = nn.LSTM(self.hidden_size*4, self.hidden_size, self.num_layers, bidirectional=True, batch_first=True)
             elif self.cell == 'gru':    
-                self.rnn2 = nn.GRU(self.hidden_size*4, self.hidden_size*2, self.num_layers, bidirectional=True, batch_first=True)
+                self.rnn2 = nn.GRU(self.hidden_size*4, self.hidden_size, self.num_layers, bidirectional=True, batch_first=True)
             else:       
                 raise ValueError(f"Cell {self.cell} not supported") 
             self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag)
