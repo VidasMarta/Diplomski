@@ -39,7 +39,7 @@ def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, 
     for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
         optimizer.zero_grad()
         
-        batch_embeddings = word_embeddings_model.get_embedding(tokens, emb_att_mask)
+        batch_embeddings = word_embeddings_model.get_embedding(tokens, emb_att_mask) 
         batch_embeddings = batch_embeddings.to(device)
         batch_attention_masks = emb_att_mask.to(device)
         if char_embedding != None:
@@ -55,6 +55,31 @@ def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, 
             if torch.isnan(total_norm) or torch.isinf(total_norm):
                 print("Warning: gradient norm is NaN or Inf!")
 
+        optimizer.step()
+        final_loss += loss.item()
+    return final_loss / len(data_loader)
+
+#to enable bioBERT fine-tuning
+def train_one_epoch_ft_bb(model, data_loader, char_embeddings, optimizer, device, max_grad_norm):
+    model.train()
+    final_loss = 0
+    for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
+        optimizer.zero_grad()
+
+        batch_tokens = tokens.to(device)
+        batch_attention_masks = emb_att_mask.to(device)
+        if char_embedding != None:
+            batch_char_embedding = char_embedding.to(device)
+        else:
+            batch_char_embedding = None
+        batch_tags = tags.to(device)
+
+        loss = model(batch_tokens, batch_tags, batch_attention_masks, batch_char_embedding)
+        loss.backward()
+        if max_grad_norm:
+            total_norm = clip_grad_norm_(model.parameters(), max_grad_norm)
+            if torch.isnan(total_norm) or torch.isinf(total_norm):
+                print("Warning: gradient norm is NaN or Inf!")
 
         optimizer.step()
         final_loss += loss.item()
@@ -63,9 +88,16 @@ def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, 
 def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, device, num_to_tag, eval, logger):
     print("Started training")
     max_grad_norm = model_args['max_grad_norm']
+
+    ft_bb = False
     # Create models
-    model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
-    best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
+    if model_args['bert_finetuning'] and model_args['word_embedding'] == 'bioBERT':
+        model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim'])
+        best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim'])
+        ft_bb = True
+    else:
+        model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
+        best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
 
     num_epochs = model_args['epochs']
     optimizer = define_optimizer(model, model_args['optimizer'], model_args['learning_rate'])
@@ -95,7 +127,10 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
         else:
             train_char_embeddings = None
             val_char_embeddings = None
-        train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
+        if ft_bb:
+            train_loss = train_one_epoch_ft_bb(model, train_data_loader, train_char_embeddings, optimizer, device, max_grad_norm)
+        else:
+            train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
         logger.log_train_loss(epoch+1, train_loss)
         #torch.cuda.empty_cache()
 
@@ -193,6 +228,7 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size)
     valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
 
+    model_args = settings_args['bert_finetuning']
     train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
         word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
         device, num_to_tag, eval, logger)

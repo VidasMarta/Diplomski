@@ -52,6 +52,7 @@ class Embedding(ABC): #For word embeddings
         pass
     
 class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://github.com/naver/biobert-pretrained)
+    #TODO: dodati finetuning kod po uzoru na https://medium.com/@0192.mayuri/bert-training-and-fine-tuning-c49718d639ba i https://github.com/dmis-lab/biobert/blob/master/run_ner.py
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
         super(Embedding_bioBERT, self).__init__(embedding_model_name, dataset_name, max_len)
         self.max_len = max_len
@@ -66,9 +67,8 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
         all_attention_masks = []
         all_word_level_masks = [] #needed for crf
 
-        for sentence, sentence_tags in zip(text, tags):
-            encoding = self.tokenizer(
-                sentence,
+        encoding = self.tokenizer(
+                text,
                 is_split_into_words=True,
                 truncation=True,
                 padding='max_length',
@@ -77,9 +77,10 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
                 return_attention_mask=True,
             )
 
-            input_ids = encoding["input_ids"][0]
-            attention_mask = encoding["attention_mask"][0]
-            word_ids = encoding.word_ids(batch_index=0)
+        for batch_idx, sentence_tags in enumerate(tags):
+            input_ids = encoding["input_ids"][batch_idx]
+            attention_mask = encoding["attention_mask"][batch_idx]
+            word_ids = encoding.word_ids(batch_index=batch_idx)
 
             # Create word-level mask: 1 for first subword of each word
             word_level_mask = []
@@ -116,16 +117,10 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             embeddings_list: List of BioBERT embeddings for a batch
         '''
         self.bert.eval()
-    
         with torch.no_grad():
             outputs = self.bert(token_list, attention_mask=attention_masks)
     
         return outputs.last_hidden_state
-
-        # Save embeddings and attention masks
-        #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_embeddings.npy", embeddings_list)
-        #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioBERT_attention_masks.npy", attention_masks_list)
-        #print(f"Processed {len(embeddings_list)} sentences.  Embeddings and attention masks saved!")
 
     def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
         all_relevant_tags = []
@@ -185,11 +180,6 @@ class Embedding_bioELMo(Embedding):
             embeddings = embeddings * mask.unsqueeze(-1)  # Apply mask along token dimension
 
             return embeddings 
-        
-        # Save embeddings
-        #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_embeddings.npy", embeddings_list)
-        #np.save(f"{self.embeddings_path}\\{self.dataset_name}\\_BioELMo_attention_masks.npy", attention_masks_list)
-        #print(f"Processed {len(embeddings_list)} sentences. Embeddings and attention masks saved!")
 
     def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
         return [[num_to_tag_dict[int(tag)] for tag in seq if int(tag) != -1] for seq in tags]
