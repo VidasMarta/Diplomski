@@ -126,7 +126,7 @@ class BiRNN_CRF(nn.Module):
 class ft_bb_BiRNN_CRF(nn.Module):
     # TODO: proučiti multitask segment binarne klasifikacije (focal ili dice loss)
     def __init__(self, num_tag, model_args, char_embedding_dim = None): 
-        super(BiRNN_CRF, self).__init__()
+        super(ft_bb_BiRNN_CRF, self).__init__()
         self.num_tag = num_tag
 
         self.cell = model_args['cell']
