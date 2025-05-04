@@ -135,7 +135,7 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
         #torch.cuda.empty_cache()
 
         # Validation
-        val_loss, f1 = eval.evaluate(valid_data_loader, model, device, val_char_embeddings, num_to_tag, logger, epoch+1)
+        val_loss, f1 = eval.evaluate(valid_data_loader, model, device, val_char_embeddings, num_to_tag, logger, ft_bb, epoch+1)
         #torch.cuda.empty_cache()
 
         #Step the scheduler with validation metric (F1)

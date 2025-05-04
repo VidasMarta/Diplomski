@@ -104,7 +104,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             all_attention_masks.append(attention_mask)
             all_padded_tags.append(torch.tensor(aligned_tags))
             all_word_level_masks.append(torch.tensor(word_level_mask))
-
+        
         return torch.stack(all_input_ids), torch.stack(all_padded_tags), torch.stack(all_attention_masks), torch.stack(all_word_level_masks)
 
 
@@ -269,7 +269,7 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
             embeddings = embeddings.view(len(batch_sentences), max_sent_len, -1)  # (B, L, emb_size)
             yield embeddings
 
-from models import BiRNN_CRF
+from models import BiRNN_CRF, ft_bb_BiRNN_CRF
 # Example usage
 if __name__ == "__main__":
     # Dummy tag mapping
@@ -328,9 +328,9 @@ if __name__ == "__main__":
     model_args['att_local'] = True
     model_args['att_local_window_size'] = 2
 
-    model = BiRNN_CRF(3, model_args, embedder.embedding_dim) #, char_emb_size)
-    logits = model(embeddings, padded_tags, attention_masks) #, char_embeddings)
-    preds = model.predict(embeddings, attention_masks) #, char_embeddings)
+    model = ft_bb_BiRNN_CRF(3, model_args) #, char_emb_size)
+    logits = model(input_ids, padded_tags, attention_masks) #, char_embeddings)
+    preds = model.predict(input_ids, attention_masks) #, char_embeddings)
 
     pred_tags = embedder.get_relevant_tags(preds, num2tag, crf_mask) #[[num2tag[int(tag)] for tag in seq ] for seq in preds]
     print(f"Predicted tags: {pred_tags}")

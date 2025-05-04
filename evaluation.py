@@ -17,7 +17,7 @@ class Evaluation:
             raise ValueError(f"Tagging scheme {tagging_scheme} not supported")
         self.emb_model = emb_model
         
-    def evaluate(self, data_loader, model, device, char_embeddings, num_to_tag_dict, logger, epoch = -1):
+    def evaluate(self, data_loader, model, device, char_embeddings, num_to_tag_dict, logger, ft_bb=False, epoch = -1):
         '''
         Evaluate the model on the test set
         Args:
@@ -37,16 +37,22 @@ class Evaluation:
         with torch.no_grad():
             final_loss = 0
             for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
-                batch_embeddings = self.emb_model.get_embedding(tokens, emb_att_mask)
-                batch_embeddings = batch_embeddings.to(device)
-                batch_attention_masks = emb_att_mask.to(device) 
                 if char_embedding != None:
-                    batch_char_embedding = char_embedding.to(device)
+                        batch_char_embedding = char_embedding.to(device)
                 else:
                     batch_char_embedding = None
+
+                batch_attention_masks = emb_att_mask.to(device)
                 batch_tags = tags.to(device)
 
-                loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
+                if ft_bb: #if doing bioBERT finetuning, model takes tokens
+                    batch_tokens = tokens.to(device)
+                    loss = model(batch_tokens, batch_tags, batch_attention_masks, batch_char_embedding)
+                else: #else, model takes emeddings
+                    batch_embeddings = self.emb_model.get_embedding(tokens, emb_att_mask)
+                    batch_embeddings = batch_embeddings.to(device)
+                    loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
+
                 final_loss += loss.item()
 
                 pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
