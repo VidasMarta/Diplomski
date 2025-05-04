@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument('--model_name', type=str, required=False, help='Name of the file used for saving model weights', default='bilstm_crf')    
     return parser.parse_args()
 
-def define_optimizer(model, name, lr):
+def define_optimizer(model, name, lr): #TODO možda dodati niži lr za bioBERT finetuning
     if name == 'adam':
         return Adam(model.parameters(), lr=lr)
     elif name == 'adamw':

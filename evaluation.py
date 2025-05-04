@@ -48,14 +48,16 @@ class Evaluation:
                 if ft_bb: #if doing bioBERT finetuning, model takes tokens
                     batch_tokens = tokens.to(device)
                     loss = model(batch_tokens, batch_tags, batch_attention_masks, batch_char_embedding)
+                    final_loss += loss.item()
+                    pred_tags = model.predict(batch_tokens, batch_attention_masks, batch_char_embedding) 
+
                 else: #else, model takes emeddings
                     batch_embeddings = self.emb_model.get_embedding(tokens, emb_att_mask)
                     batch_embeddings = batch_embeddings.to(device)
                     loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
+                    final_loss += loss.item()
+                    pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
 
-                final_loss += loss.item()
-
-                pred_tags = model.predict(batch_embeddings, batch_attention_masks, batch_char_embedding) 
 
                 #remove padding
                 relevant_true_tags = self.emb_model.get_relevant_tags(tags, num_to_tag_dict, crf_mask)
