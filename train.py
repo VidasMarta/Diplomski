@@ -22,16 +22,37 @@ def parse_args():
     parser.add_argument('--model_name', type=str, required=False, help='Name of the file used for saving model weights', default='bilstm_crf')    
     return parser.parse_args()
 
-def define_optimizer(model, name, lr): #TODO možda dodati niži lr za bioBERT finetuning
-    if name == 'adam':
+def define_optimizer(model, model_args, lr): 
+    if model_args['optimizer'] == 'adam':
+        if model_args['bert_finetuning']:
+            return Adam([
+                {"params": model.bert.parameters(), "lr": 2e-5},
+                {"params": model.rnn.parameters(), "lr": 1e-3},
+                {"params": model.hidden2tag_tag.parameters(), "lr": 1e-3},
+                {"params": model.crf_tag.parameters(), "lr": 1e-3}
+                ])
         return Adam(model.parameters(), lr=lr)
-    elif name == 'adamw':
+    elif model_args['optimizer'] == 'adamw':
+        if model_args['bert_finetuning']:
+            return AdamW([
+                {"params": model.bert.parameters(), "lr": 2e-5},
+                {"params": model.rnn.parameters(), "lr": 1e-3},
+                {"params": model.hidden2tag_tag.parameters(), "lr": 1e-3},
+                {"params": model.crf_tag.parameters(), "lr": 1e-3}
+                ])
         return AdamW(model.parameters(), lr=lr)
-    elif name == 'sgd':
+    elif model_args['optimizer'] == 'sgd':
+        if model_args['bert_finetuning']:
+            return SGD([
+                {"params": model.bert.parameters(), "lr": 2e-5},
+                {"params": model.rnn.parameters(), "lr": 1e-3},
+                {"params": model.hidden2tag_tag.parameters(), "lr": 1e-3},
+                {"params": model.crf_tag.parameters(), "lr": 1e-3}
+                ])
         return SGD(model.parameters(), lr=lr) #, momentum=0.9)
     # Add more optimizers here if nessesary
     else:
-        raise ValueError(f"Optimizer {name} not supported")
+        raise ValueError(f"Optimizer {model_args['optimizer']} not supported")
     
 def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, optimizer, device, max_grad_norm):
     model.train()
@@ -240,7 +261,7 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
 
     best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
-    best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim']) 
+    best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim']) 
     best_model.load_state_dict(best_model_weights)
     print("Testing")
     eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger)
