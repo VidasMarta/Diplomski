@@ -183,7 +183,7 @@ class Normal_Trainer(Trainer):
         self.model.train()
         final_loss = 0
         for (tokens, tags, emb_att_mask, _), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
             
             batch_embeddings = self.word_embeddings_model.get_embedding(tokens, emb_att_mask) 
             batch_embeddings = batch_embeddings.to(self.device)
@@ -202,7 +202,7 @@ class Normal_Trainer(Trainer):
                 if torch.isnan(total_norm) or torch.isinf(total_norm):
                     print("Warning: gradient norm is NaN or Inf!")
 
-            optimizer.step()
+            self.optimizer.step()
             final_loss += loss.item()
         return final_loss / len(data_loader)
 
