@@ -38,7 +38,6 @@ class Trainer(ABC):
     def _train_one_epoch(self, data_loader, char_embeddings):
         pass
     
-    @abstractmethod
     def train(self):
         self.optimizer = self._define_optimizer()
         self.model.to(self.device)
