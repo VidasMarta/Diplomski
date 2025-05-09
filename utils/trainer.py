@@ -13,8 +13,8 @@ class Trainer(ABC):
                  max_len, batch_size, device, num_to_tag, eval, logger):
         self.model_name = model_name
         self.model_args = model_args
-        self.max_grad_norm = model_args['max_grad_norm']
-        self.num_epochs = model_args['epochs']
+        self.max_grad_norm = float(model_args['max_grad_norm'])
+        self.num_epochs = int(model_args['epochs'])
         self.num_tags = num_tags
         self.train_data_loader = train_data_loader
         self.valid_data_loader = valid_data_loader
@@ -107,27 +107,26 @@ class Finetuning_Trainer(Trainer):
         self.best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim'])
 
     def _define_optimizer(self):
-        print("LR:", self.model_args['lr'], type(self.model_args['lr']))
         if self.model_args['optimizer'] == 'adam':
             return Adam([
-                    {"params": self.model.bert.parameters(), "lr": self.model_args['ft_lr']},
-                    {"params": self.model.rnn.parameters(), "lr": self.model_args['lr']},
-                    {"params": self.model.hidden2tag_tag.parameters(), "lr": self.model_args['lr']},
-                    {"params": self.model.crf_tag.parameters(), "lr": self.model_args['lr']}
+                    {"params": self.model.bert.parameters(), "lr": float(self.model_args['ft_lr'])},
+                    {"params": self.model.rnn.parameters(), "lr": float(self.model_args['lr'])},
+                    {"params": self.model.hidden2tag_tag.parameters(), "lr": float(self.model_args['lr'])},
+                    {"params": self.model.crf_tag.parameters(), "lr": float(self.model_args['lr'])}
                     ])
         elif self.model_args['optimizer'] == 'adamw':
             return AdamW([
-                    {"params": self.model.bert.parameters(), "lr": self.model_args['ft_lr']},
-                    {"params": self.model.rnn.parameters(), "lr": self.model_args['lr']},
-                    {"params": self.model.hidden2tag_tag.parameters(), "lr": self.model_args['lr']},
-                    {"params": self.model.crf_tag.parameters(), "lr": self.model_args['lr']}
+                    {"params": self.model.bert.parameters(), "lr": float(self.model_args['ft_lr'])},
+                    {"params": self.model.rnn.parameters(), "lr": float(self.model_args['lr'])},
+                    {"params": self.model.hidden2tag_tag.parameters(), "lr": float(self.model_args['lr'])},
+                    {"params": self.model.crf_tag.parameters(), "lr": float(self.model_args['lr'])}
                     ])
         elif self.model_args['optimizer'] == 'sgd':
             return SGD([
-                    {"params": self.model.bert.parameters(), "lr": self.model_args['ft_lr']},
-                    {"params": self.model.rnn.parameters(), "lr": self.model_args['lr']},
-                    {"params": self.model.hidden2tag_tag.parameters(), "lr": self.model_args['lr']},
-                    {"params": self.model.crf_tag.parameters(), "lr": self.model_args['lr']}
+                    {"params": self.model.bert.parameters(), "lr": float(self.model_args['ft_lr'])},
+                    {"params": self.model.rnn.parameters(), "lr": float(self.model_args['lr'])},
+                    {"params": self.model.hidden2tag_tag.parameters(), "lr": float(self.model_args['lr'])},
+                    {"params": self.model.crf_tag.parameters(), "lr": float(self.model_args['lr'])}
                     ])
         else:
             raise ValueError(f"Optimizer {self.model_args['optimizer']} not supported")
@@ -171,11 +170,11 @@ class Normal_Trainer(Trainer):
 
     def _define_optimizer(self):
         if self.model_args['optimizer'] == 'adam':
-            return Adam(self.model.parameters(), lr=self.model_args['lr'])
+            return Adam(self.model.parameters(), lr=float(self.model_args['lr']))
         elif self.model_args['optimizer'] == 'adamw':
-            return AdamW(self.model.parameters(), lr=self.model_args['lr'])
+            return AdamW(self.model.parameters(), lr=float(self.model_args['lr']))
         elif self.model_args['optimizer'] == 'sgd':
-            return SGD(self.model.parameters(), lr=self.model_args['lr']) #, momentum=0.9)
+            return SGD(self.model.parameters(), lr=float(self.model_args['lr'])) #, momentum=0.9)
         #   Add more optimizers here if nessesary
         else:
             raise ValueError(f"Optimizer {self.model_args['optimizer']} not supported")
