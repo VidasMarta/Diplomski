@@ -259,12 +259,19 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
     tokens_test_padded, tags_test_padded, attention_masks_test, crf_mask_test= word_embeddings_model.tokenize_and_pad_text(text_test, tags_test)
     test_data = Dataset(tokens_test_padded, tags_test_padded, attention_masks_test, crf_mask_test)
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
-
-    best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
-    best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim']) 
-    best_model.load_state_dict(best_model_weights)
-    print("Testing")
-    eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger)
+    
+    if model_args['bert_finetuning'] and model_args['word_embedding'] == 'bioBERT':
+        best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
+        best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim']) 
+        best_model.load_state_dict(best_model_weights)
+        print("Testing")
+        eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger, True)
+    else:
+        best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
+        best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
+        best_model.load_state_dict(best_model_weights)
+        print("Testing")
+        eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger)
 
 
 def set_seed(seed: int = 42): #izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
