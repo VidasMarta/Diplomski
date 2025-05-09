@@ -47,7 +47,7 @@ class Trainer(ABC):
             self.optimizer,
             mode='max',
             factor=0.5,
-            patience=2,
+            patience=2, 
             verbose=True
         )
 
@@ -153,7 +153,7 @@ class Finetuning_Trainer(Trainer):
                 if torch.isnan(total_norm) or torch.isinf(total_norm):
                     print("Warning: gradient norm is NaN or Inf!")
 
-            optimizer.step()
+            self.optimizer.step()
             final_loss += loss.item()
         return final_loss / len(data_loader)
 
