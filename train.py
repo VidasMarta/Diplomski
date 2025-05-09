@@ -121,7 +121,7 @@ def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader
         best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
 
     num_epochs = model_args['epochs']
-    optimizer = define_optimizer(model, model_args['optimizer'], model_args['learning_rate'])
+    optimizer = define_optimizer(model, model_args, model_args['learning_rate'])
     model.to(device)
 
     # Add LR scheduler, TODO: istražiti koje parametre staviti tu
