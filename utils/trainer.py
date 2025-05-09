@@ -107,6 +107,7 @@ class Finetuning_Trainer(Trainer):
         self.best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim'])
 
     def _define_optimizer(self):
+        print("LR:", self.model_args['lr'], type(self.model_args['lr']))
         if self.model_args['optimizer'] == 'adam':
             return Adam([
                     {"params": self.model.bert.parameters(), "lr": self.model_args['ft_lr']},
