@@ -4,7 +4,7 @@ model:
   hidden_size: 512
   num_layers: 1
   dropout: 0.3
-  learning_rate: 0.001
+  learning_rate: 1e-3
   batch_size: 32
   use_crf: true  # Set to false if CRF is not used
   loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
@@ -22,7 +22,8 @@ model:
 settings:
   word_embedding: "bioBERT"  # Options: "bioBERT", "bioELMo"
   bert_finetuning: true #Ignore if word_embedding not set to bioBERT
-  char_cnn_embedding: false #if false, ignore cnn_* settings
+  ft_lr: 2e-5 #staviti manji od lr-a za model
+  char_cnn_embedding: true #if false, ignore cnn_* settings
   cnn_vocab: "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #Vidjeti jel se mijenja ako dodoamo velika slova u vokabular (i onda izbacimo .lower() u kodu)
   cnn_max_word_len: 20 #oko 20-30
   cnn_embedding_dim: 256

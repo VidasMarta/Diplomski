@@ -26,9 +26,9 @@ class Embedding(ABC): #For word embeddings
         Returns:
             Embedding model instance or raises ValueError if the embedding model is not supported
         '''
-        if embedding_model_name == 'bioBERT':
+        if embedding_model_name.lower() == 'biobert':
             return Embedding_bioBERT(embedding_model_name, dataset_name, max_len)
-        elif embedding_model_name == 'bioELMo':
+        elif embedding_model_name.lower() == 'bioelmo':
             return Embedding_bioELMo(embedding_model_name, dataset_name, max_len)
         else:
             raise ValueError(f"Embedding {embedding_model_name} not supported, bioBERT and bioELMo are.")

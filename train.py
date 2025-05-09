@@ -1,197 +1,23 @@
 import argparse
-import copy
-import itertools
 import os
 import random
 import models
 from preprocessing import Embedding, CharEmbeddingCNN
 from datasets import Dataset
-import utils.dataset_converter as dataset_converter
 from evaluation import Evaluation
 import torch
 from torch.optim import *
 import settings
 from datasets import *
-from torch.nn.utils import clip_grad_norm_
 import numpy as np
 from utils.logger import Logger
+from utils import trainer
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Training script")
     parser.add_argument('--config', type=str, required=False, help='Path to the config file', default='/lustre/home/mvidas/Diplomski/experiments/default_train.yml')    
     parser.add_argument('--model_name', type=str, required=False, help='Name of the file used for saving model weights', default='bilstm_crf')    
     return parser.parse_args()
-
-def define_optimizer(model, model_args, lr): 
-    if model_args['optimizer'] == 'adam':
-        if model_args['bert_finetuning']:
-            return Adam([
-                {"params": model.bert.parameters(), "lr": 2e-5},
-                {"params": model.rnn.parameters(), "lr": 1e-3},
-                {"params": model.hidden2tag_tag.parameters(), "lr": 1e-3},
-                {"params": model.crf_tag.parameters(), "lr": 1e-3}
-                ])
-        return Adam(model.parameters(), lr=lr)
-    elif model_args['optimizer'] == 'adamw':
-        if model_args['bert_finetuning']:
-            return AdamW([
-                {"params": model.bert.parameters(), "lr": 2e-5},
-                {"params": model.rnn.parameters(), "lr": 1e-3},
-                {"params": model.hidden2tag_tag.parameters(), "lr": 1e-3},
-                {"params": model.crf_tag.parameters(), "lr": 1e-3}
-                ])
-        return AdamW(model.parameters(), lr=lr)
-    elif model_args['optimizer'] == 'sgd':
-        if model_args['bert_finetuning']:
-            return SGD([
-                {"params": model.bert.parameters(), "lr": 2e-5},
-                {"params": model.rnn.parameters(), "lr": 1e-3},
-                {"params": model.hidden2tag_tag.parameters(), "lr": 1e-3},
-                {"params": model.crf_tag.parameters(), "lr": 1e-3}
-                ])
-        return SGD(model.parameters(), lr=lr) #, momentum=0.9)
-    # Add more optimizers here if nessesary
-    else:
-        raise ValueError(f"Optimizer {model_args['optimizer']} not supported")
-    
-def train_one_epoch(model, data_loader, word_embeddings_model, char_embeddings, optimizer, device, max_grad_norm):
-    model.train()
-    final_loss = 0
-    for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
-        optimizer.zero_grad()
-        
-        batch_embeddings = word_embeddings_model.get_embedding(tokens, emb_att_mask) 
-        batch_embeddings = batch_embeddings.to(device)
-        batch_attention_masks = emb_att_mask.to(device)
-        if char_embedding != None:
-            batch_char_embedding = char_embedding.to(device)
-        else:
-            batch_char_embedding = None
-        batch_tags = tags.to(device)
-
-        loss = model(batch_embeddings, batch_tags, batch_attention_masks, batch_char_embedding)
-        loss.backward()
-        if max_grad_norm:
-            total_norm = clip_grad_norm_(model.parameters(), max_grad_norm)
-            if torch.isnan(total_norm) or torch.isinf(total_norm):
-                print("Warning: gradient norm is NaN or Inf!")
-
-        optimizer.step()
-        final_loss += loss.item()
-    return final_loss / len(data_loader)
-
-#to enable bioBERT fine-tuning
-def train_one_epoch_ft_bb(model, data_loader, char_embeddings, optimizer, device, max_grad_norm):
-    model.train()
-    final_loss = 0
-    for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
-        optimizer.zero_grad()
-
-        batch_tokens = tokens.to(device)
-        batch_attention_masks = emb_att_mask.to(device)
-        if char_embedding != None:
-            batch_char_embedding = char_embedding.to(device)
-        else:
-            batch_char_embedding = None
-        batch_tags = tags.to(device)
-
-        loss = model(batch_tokens, batch_tags, batch_attention_masks, batch_char_embedding)
-        loss.backward()
-        if max_grad_norm:
-            total_norm = clip_grad_norm_(model.parameters(), max_grad_norm)
-            if torch.isnan(total_norm) or torch.isinf(total_norm):
-                print("Warning: gradient norm is NaN or Inf!")
-
-        optimizer.step()
-        final_loss += loss.item()
-    return final_loss / len(data_loader)
-
-def train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, device, num_to_tag, eval, logger):
-    print("Started training")
-    max_grad_norm = model_args['max_grad_norm']
-
-    ft_bb = False
-    # Create models
-    if model_args['bert_finetuning'] and model_args['word_embedding'] == 'bioBERT':
-        model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim'])
-        best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim'])
-        ft_bb = True
-    else:
-        model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
-        best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
-
-    num_epochs = model_args['epochs']
-    optimizer = define_optimizer(model, model_args, model_args['learning_rate'])
-    model.to(device)
-
-    # Add LR scheduler, TODO: istražiti koje parametre staviti tu
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        mode='max',
-        factor=0.5,
-        patience=2,
-        verbose=True
-    )
-
-    #Initialize Variables for EarlyStopping
-    best_loss = float('inf')
-    best_f1 = -1
-    best_model_weights = None
-    patience = int(model_args['early_stopping'])
-    epochs_no_improve = 0
-    #min_delta = float(model_args['min_delta'])
-
-    for epoch in range(num_epochs):
-        if char_emb is not None:
-            train_char_embeddings = char_emb.batch_cnn_embedding_generator(text_train, max_len, batch_size)
-            val_char_embeddings = char_emb.batch_cnn_embedding_generator(text_val, max_len, batch_size)
-        else:
-            train_char_embeddings = None
-            val_char_embeddings = None
-        if ft_bb:
-            train_loss = train_one_epoch_ft_bb(model, train_data_loader, train_char_embeddings, optimizer, device, max_grad_norm)
-        else:
-            train_loss = train_one_epoch(model, train_data_loader, word_embeddings_model, train_char_embeddings, optimizer, device, max_grad_norm)
-        logger.log_train_loss(epoch+1, train_loss)
-        #torch.cuda.empty_cache()
-
-        # Validation
-        val_loss, f1 = eval.evaluate(valid_data_loader, model, device, val_char_embeddings, num_to_tag, logger, ft_bb, epoch+1)
-        #torch.cuda.empty_cache()
-
-        #Step the scheduler with validation metric (F1)
-        scheduler.step(f1)
-
-        # Early stopping looking at loss
-        """ if val_loss + min_delta < best_loss:
-            best_loss = val_loss
-            epochs_no_improve = 0
-            best_model_weights = copy.deepcopy(model.state_dict())  # Deep copy here      
-            print(f"Validation loss improved to {best_loss:.4f}")
-        else:
-            epochs_no_improve += 1
-            if epochs_no_improve >= patience:
-                print(f"Early stopping triggered after {epoch+1} epochs.")
-                break """
-        #Early stopping looking at f1-score (strict)
-        if f1 > best_f1:
-            best_f1 = f1
-            epochs_no_improve = 0
-            best_model_weights = copy.deepcopy(model.state_dict())  # Deep copy here      
-            print(f"Validation f1 improved to {best_f1:.4f} in epoch {epoch+1}")
-        else:
-            epochs_no_improve += 1
-            if epochs_no_improve >= patience:
-                print(f"Early stopping triggered after {epoch+1} epochs.")
-                break
-        
-        if epoch%10 == 0:
-            print(f"Train Loss ({epoch+1}/{num_epochs}) = {train_loss}")
-            print(f"Validation Loss ({epoch+1}/{num_epochs}) = {val_loss}")
-
-    # Save the best model
-    best_model.load_state_dict(best_model_weights)
-    torch.save(best_model.state_dict(), settings.MODEL_PATH +f"/{model_name}_best.bin")
 
 
 def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/notes/randomness.html)
@@ -225,8 +51,6 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
 
     #if no char cnn is used
     char_emb = None
-    train_char_embeddings = None
-    val_char_embeddings = None
     test_char_embeddings = None
     model_args['char_embedding_dim'] = None
 
@@ -248,31 +72,33 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
 
     train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size)
     valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
-
-    model_args['bert_finetuning'] = settings_args['bert_finetuning']
-    model_args['word_embedding'] = settings_args['word_embedding']
-    train(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
-        word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
-        device, num_to_tag, eval, logger)
-
-    #Evaluate on test set
     tokens_test_padded, tags_test_padded, attention_masks_test, crf_mask_test= word_embeddings_model.tokenize_and_pad_text(text_test, tags_test)
     test_data = Dataset(tokens_test_padded, tags_test_padded, attention_masks_test, crf_mask_test)
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
-    
-    if model_args['bert_finetuning'] and model_args['word_embedding'] == 'bioBERT':
+
+    if settings_args['bert_finetuning'] and settings_args['word_embedding'] == 'bioBERT':
+        model_args['ft_lr'] = settings_args['ft_lr']
+        trainer.Finetuning_Trainer(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
+        word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
+        device, num_to_tag, eval, logger).train()
+
         best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
         best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim']) 
         best_model.load_state_dict(best_model_weights)
         print("Testing")
         eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger, True)
+
     else:
+        trainer.Normal_Trainer(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
+        word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
+        device, num_to_tag, eval, logger).train()
+
         best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
         best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
         best_model.load_state_dict(best_model_weights)
         print("Testing")
         eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger)
-
+        
 
 def set_seed(seed: int = 42): #izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
     np.random.seed(seed)
