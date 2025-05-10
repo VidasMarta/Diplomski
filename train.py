@@ -20,7 +20,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/notes/randomness.html)
+def main(): 
     args = parse_args()
     model_name = args.model_name
     model_args, settings_args = settings.Settings(args.config)
@@ -100,7 +100,7 @@ def main(): #TODO: dodati za reproducility (https://pytorch.org/docs/stable/note
         eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger)
         
 
-def set_seed(seed: int = 42): #izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
+def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)

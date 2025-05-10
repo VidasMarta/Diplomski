@@ -186,6 +186,7 @@ class Embedding_bioELMo(Embedding):
 
 
 class CharEmbeddingCNN(nn.Module): #For char embeddings
+    #TODO možda promijeniti model (tipa nešto kao ovo https://github.com/valdersoul/GRAM-CNN/blob/master/src/model.py)
     def __init__(self, vocab, emb_size, feature_size, max_word_length, dropout=0.1): #, args, number_of_classes):
         super(CharEmbeddingCNN, self).__init__()
        
