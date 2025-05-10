@@ -154,7 +154,6 @@ class ft_bb_BiRNN_CRF(nn.Module):
         if self.attention:
             self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True) # *2 because of bidirectional
             self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag) # *2 because of bidirectional
-            self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag)
         else:
             self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
 
