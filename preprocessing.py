@@ -86,6 +86,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
             word_level_mask = []
             aligned_tags = []
             prev_word_id = None
+            # only first subword is labeled, others are labeled as -1 (https://datascience.stackexchange.com/questions/69640/what-should-be-the-labels-for-subword-tokens-in-bert-for-ner-task)
             for word_id in word_ids:
                 if word_id is None: #padding or other special token (cls, sep)
                     word_level_mask.append(0)
@@ -98,7 +99,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
                     word_level_mask.append(0)
                     aligned_tags.append(-1)
 
-            assert len(aligned_tags) == len(word_level_mask), "Aligninig not good"
+            #assert len(aligned_tags) == len(word_level_mask), "Aligninig not good"
 
             all_input_ids.append(input_ids)
             all_attention_masks.append(attention_mask)

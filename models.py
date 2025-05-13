@@ -26,21 +26,14 @@ class BiRNN_CRF(nn.Module):
         else:       
             raise ValueError(f"Cell {self.cell} not supported")
 
+        self.normalize = nn.LayerNorm(self.hidden_size*2)
         self.dropout_tag = nn.Dropout(self.dropout)
 
         if self.attention:
-            #self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True) # *2 because of bidirectional
-            #self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag) # *2 because of bidirectional
-            self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True)
-            if self.cell == 'lstm':
-                self.rnn2 = nn.LSTM(self.hidden_size*4, self.hidden_size, self.num_layers, bidirectional=True, batch_first=True)
-            elif self.cell == 'gru':    
-                self.rnn2 = nn.GRU(self.hidden_size*4, self.hidden_size, self.num_layers, bidirectional=True, batch_first=True)
-            else:       
-                raise ValueError(f"Cell {self.cell} not supported") 
-            self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag)
-        else:
-            self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
+            self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True) # *2 because of bidirectional
+            self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag) # *2 because of bidirectional
+            
+        self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
 
         if self.use_crf:
             self.crf_tag = CRF(self.num_tag)
@@ -70,14 +63,13 @@ class BiRNN_CRF(nn.Module):
         else:
             embedding = word_embedding
         h, _ = self.rnn(embedding)
-        o_tag = self.dropout_tag(h)
+        h_norm = self.normalize(h)
+        o_tag = self.dropout_tag(h_norm)
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
             attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
-            att_hidd = torch.cat([attention_output, o_tag], dim=-1) #tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
-            h2, _ = self.rnn2(att_hidd)
-            tag = self.hidden2tag_tag(h2)
+            tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
 
@@ -103,14 +95,13 @@ class BiRNN_CRF(nn.Module):
         else:
             embedding = word_embedding
         h, _ = self.rnn(embedding)
-        o_tag = self.dropout_tag(h)
+        h_norm = self.normalize(h)
+        o_tag = self.dropout_tag(h_norm)
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
             attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
-            att_hidd = torch.cat([attention_output, o_tag], dim=-1) #tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
-            h2, _ = self.rnn2(att_hidd)
-            tag = self.hidden2tag_tag(h2)
+            tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
             
@@ -148,6 +139,7 @@ class ft_bb_BiRNN_CRF(nn.Module):
         else:       
             raise ValueError(f"Cell {self.cell} not supported")
 
+        self.normalize = nn.LayerNorm(self.hidden_size*2)
         self.dropout_tag = nn.Dropout(self.dropout)
 
         if self.attention:
@@ -186,7 +178,8 @@ class ft_bb_BiRNN_CRF(nn.Module):
         else:
             embedding = bert_embeddings
         h, _ = self.rnn(embedding)
-        o_tag = self.dropout_tag(h)
+        h_norm = self.normalize(h)
+        o_tag = self.dropout_tag(h_norm)
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
@@ -219,7 +212,8 @@ class ft_bb_BiRNN_CRF(nn.Module):
         else:
             embedding = bert_embeddings
         h, _ = self.rnn(embedding)
-        o_tag = self.dropout_tag(h)
+        h_norm = self.normalize(h)
+        o_tag = self.dropout_tag(h_norm)
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
@@ -237,5 +231,4 @@ class ft_bb_BiRNN_CRF(nn.Module):
         return predicted_tags
     
 
-# TODO: proučiti multitask segment binarne klasifikacije (focal ili dice loss)
 
