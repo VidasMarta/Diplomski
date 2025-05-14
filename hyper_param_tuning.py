@@ -39,6 +39,7 @@ def objective(trial): #TODO otkomentirati ostale za hiperparam za tuning, trenut
     model_args = {}
     model_args['hidden_size'] = trial.suggest_categorical('hidden_size', [256, 512, 768])
     model_args['lr'] = trial.suggest_loguniform('lr', 5e-4, 1.5e-3) #trenutni lr na 1e-3
+    model_args['cell'] = 'gru' #trial.suggest_categorical('cell', ['lstm', 'gru'])
     model_args['ft_lr'] = 2e-5 #trial.suggest_loguniform('ft_lr', 1e-5, 3e-5) #trenutni ft_lr na 2e-5
     model_args['optimizer'] = "adam" #trial.suggest_categorical("optimizer", ["adam", "adamw"])
     model_args['dropout'] = 0.3 #trial.suggest_uniform("dropout", 0.15, 0.45)
