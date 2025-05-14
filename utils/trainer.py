@@ -75,7 +75,7 @@ class Trainer(ABC):
             if save_model:
                 val_loss, f1 = self.eval.evaluate(self.valid_data_loader, self.model, self.device, val_char_embeddings, self.num_to_tag, self.logger, self.finetuning, epoch+1)
             else:
-                f1 = self.eval.hyperparam_eval(self.valid_data_loader, self.model, self.device, val_char_embeddings, self.num_to_tag)
+                val_loss, f1 = self.eval.hyperparam_eval(self.valid_data_loader, self.model, self.device, val_char_embeddings, self.num_to_tag)
             #torch.cuda.empty_cache()
 
             #Step the scheduler with validation metric (F1)

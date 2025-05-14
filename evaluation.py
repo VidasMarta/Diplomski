@@ -129,10 +129,11 @@ class Evaluation:
                 all_pred_tags.extend(relevant_pred_tags)
 
             #mode='strict' ->  ensures that entity predictions are only counted as correct if they exactly match the true entity boundaries and the entity type
-            f1_score = seqeval.metrics.f1_score(all_true_tags, all_pred_tags, average='micro') 
+            f1_score = seqeval.metrics.f1_score(all_true_tags, all_pred_tags, average='micro')
+            loss = final_loss/len(data_loader) 
                        
 
-            return f1_score #_strict
+            return loss, f1_score #_strict
 
         
         
