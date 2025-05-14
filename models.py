@@ -26,7 +26,7 @@ class BiRNN_CRF(nn.Module):
         else:       
             raise ValueError(f"Cell {self.cell} not supported")
 
-        self.normalize = nn.LayerNorm(self.hidden_size*2)
+        self.normalize = nn.LayerNorm(self.hidden_size*2) #Za nakon rnn-a bolji LayerNorm nego BatchNorm (https://arxiv.org/pdf/1607.06450)
         self.dropout_tag = nn.Dropout(self.dropout)
 
         if self.attention:

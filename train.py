@@ -69,9 +69,9 @@ def main():
     train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train, crf_mask_train)
     tokens_val_padded, tags_val_padded, attention_masks_val, crf_mask_val = word_embeddings_model.tokenize_and_pad_text(text_val, tags_val)
     val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val, crf_mask_val)
-
     train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size)
     valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
+
     tokens_test_padded, tags_test_padded, attention_masks_test, crf_mask_test= word_embeddings_model.tokenize_and_pad_text(text_test, tags_test)
     test_data = Dataset(tokens_test_padded, tags_test_padded, attention_masks_test, crf_mask_test)
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size)

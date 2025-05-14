@@ -35,7 +35,7 @@ class Trainer(ABC):
         pass
 
     @abstractmethod
-    def _train_one_epoch(self, data_loader, char_embeddings):
+    def train_one_epoch(self, data_loader, char_embeddings):
         pass
     
     def train(self):
@@ -131,7 +131,7 @@ class Finetuning_Trainer(Trainer):
         else:
             raise ValueError(f"Optimizer {self.model_args['optimizer']} not supported")
         
-    def _train_one_epoch(self, data_loader, char_embeddings):
+    def train_one_epoch(self, data_loader, char_embeddings):
         self.model.train()
         final_loss = 0
         for (tokens, tags, emb_att_mask, _), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
@@ -179,7 +179,7 @@ class Normal_Trainer(Trainer):
         else:
             raise ValueError(f"Optimizer {self.model_args['optimizer']} not supported")
         
-    def _train_one_epoch(self, data_loader, char_embeddings):
+    def train_one_epoch(self, data_loader, char_embeddings):
         self.model.train()
         final_loss = 0
         for (tokens, tags, emb_att_mask, _), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
@@ -206,3 +206,30 @@ class Normal_Trainer(Trainer):
             final_loss += loss.item()
         return final_loss / len(data_loader)
 
+class Hyperparam_tuning_trainer(Finetuning_Trainer):
+    def __init__(self, model_name, model_args, num_tags, train_data_loader, valid_data_loader, word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, device, num_to_tag, eval, logger):
+        super().__init__(model_name, model_args, num_tags, train_data_loader, valid_data_loader, word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, device, num_to_tag, eval, logger)
+
+        self.finetuning = True
+        self.model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim'])
+        self.best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim'])
+
+    def train(self):
+        self.optimizer = self._define_optimizer()
+        self.model.to(self.device)
+
+        best_f1 = -1
+
+        for epoch in range(self.num_epochs):
+            if self.char_emb is not None:
+                train_char_embeddings = self.char_emb.batch_cnn_embedding_generator(self.text_train, self.max_len, self.batch_size)
+                val_char_embeddings = self.char_emb.batch_cnn_embedding_generator(self.text_val, self.max_len, self.batch_size)
+            else:
+                train_char_embeddings = None
+                val_char_embeddings = None
+                
+            _ = self._train_one_epoch(self.train_data_loader, train_char_embeddings)
+            _, f1 = self.eval.hyperparam_eval(self.valid_data_loader, self.model, self.device, val_char_embeddings, self.num_to_tag)
+            best_f1 = max(best_f1, f1)
+
+        return best_f1
