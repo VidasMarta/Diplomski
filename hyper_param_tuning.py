@@ -62,7 +62,7 @@ def objective(trial): #TODO otkomentirati ostale za hiperparam za tuning, trenut
     eval = Evaluation(word_embeddings_model, "IOB1")
     train_data_loader, valid_data_loader = get_dataset_loaders(dataset_loader, text_train, tags_train, text_val, tags_val, word_embeddings_model)
 
-    f1_valid = trainer.Hyperparam_tuning_trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, char_emb, text_train, text_val, MAX_LEN,
+    f1_valid = trainer.Hyperparam_tuning_trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], text_train, text_val, MAX_LEN,
                                 BATCH_SIZE, DEVICE, num_to_tag, eval).train()
 
     return f1_valid 
