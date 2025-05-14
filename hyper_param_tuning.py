@@ -52,24 +52,25 @@ def objective(trial): #TODO otkomentirati ostale za hiperparam za tuning, trenut
     # Other hyperparameters
     model_args['use_crf'] = True
     model_args['loss'] = 'CRF'
-    model_args['epochs'] = 5 #tako da kraće traje treniranje
+    model_args['epochs'] = 10 #tako da kraće traje treniranje
     model_args['max_grad_norm'] = 5.0
+    model_args['early_stopping'] = 3
     
     dataset_loader = DatasetLoader(DATASET_NAME, settings.DATA_PATH)
     tag_to_num, (text_train, tags_train), (text_val, tags_val), (_, _) = dataset_loader.load_data()
     num_to_tag = dict((v,k) for k,v in tag_to_num.items())
     word_embeddings_model = Embedding.create("bioBERT", dataset_loader.dataset_name, MAX_LEN) 
     eval = Evaluation(word_embeddings_model, "IOB1")
-    train_data_loader, valid_data_loader = get_dataset_loaders(dataset_loader, text_train, tags_train, text_val, tags_val, word_embeddings_model)
+    train_data_loader, valid_data_loader = get_dataset_loaders(text_train, tags_train, text_val, tags_val, word_embeddings_model)
 
-    f1_valid = trainer.Hyperparam_tuning_trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], text_train, text_val, MAX_LEN,
-                                BATCH_SIZE, DEVICE, num_to_tag, eval).train()
+    f1_valid = trainer.Finetuning_Trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], text_train, text_val, MAX_LEN,
+                                BATCH_SIZE, DEVICE, num_to_tag, eval).train(False)
 
     return f1_valid 
 
 def main():
     study = optuna.create_study(direction='maximize') #gledat će f1 na val skupu pa treba maksimizirati
-    study.optimize(objective, n_trials=50) #staviti na 50 ili 100
+    study.optimize(objective, n_trials=10) #staviti na 50 ili 100
     print("Best Hyperparameters:", study.best_params)
 
 def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
