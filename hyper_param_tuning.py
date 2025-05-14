@@ -12,27 +12,24 @@ from utils import trainer
 
 DATASET_NAME = "ncbi_disease_json" # or "bc5cdr_json"
 MODEL_NAME = "D1_hyper_param_tuning"
-MAX_LEN = 256
-BATCH_SIZE = 32
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def train_model(model_args):    
     # Load datasets for train and test
     dataset_loader = DatasetLoader(DATASET_NAME, settings.DATA_PATH)
     tag_to_num, (text_train, tags_train), (text_val, tags_val), (_, _) = dataset_loader.load_data()
     num_to_tag = dict((v,k) for k,v in tag_to_num.items())
-    word_embeddings_model = Embedding.create("bioBERT", dataset_loader.dataset_name, MAX_LEN) 
+    word_embeddings_model = Embedding.create("bioBERT", dataset_loader.dataset_name, model_args['max_len']) 
     eval = Evaluation(word_embeddings_model, "IOB1")
     
     tokens_train_padded, tags_train_padded, attention_masks_train, crf_mask_train = word_embeddings_model.tokenize_and_pad_text(text_train, tags_train)
     train_data = Dataset(tokens_train_padded, tags_train_padded, attention_masks_train, crf_mask_train)
     tokens_val_padded, tags_val_padded, attention_masks_val, crf_mask_val = word_embeddings_model.tokenize_and_pad_text(text_val, tags_val)
     val_data = Dataset(tokens_val_padded, tags_val_padded, attention_masks_val, crf_mask_val)
-    train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE)
-    valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=BATCH_SIZE)
+    train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=model_args['batch_size'])
+    valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=model_args['batch_size'])
 
     return trainer.Finetuning_Trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], 
-                                      text_train, text_val, MAX_LEN, BATCH_SIZE, DEVICE, num_to_tag, eval, None).train(False)
+                                      text_train, text_val,  model_args['max_len'], model_args['batch_size'],  model_args['device'], num_to_tag, eval, None).train(False)
 
 def objective(trial): #TODO otkomentirati ostale za hiperparam za tuning, trenutno samo 2 tunam, ovo je testna verzija
     # Hyperparameters to tune
@@ -59,6 +56,10 @@ def objective(trial): #TODO otkomentirati ostale za hiperparam za tuning, trenut
 
     # Other hyperparameters
     model_args['use_crf'] = True
+    model_args['batch_size'] = 32
+    model_args['num_layers'] = 1
+    model_args['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model_args['max_len'] = 256
     model_args['loss'] = 'CRF'
     model_args['epochs'] = 10 #tako da kraće traje treniranje
     model_args['max_grad_norm'] = 5.0
