@@ -70,7 +70,7 @@ def objective(trial):
 
 def main():
     study = optuna.create_study(direction='maximize') #gledat će f1 na val skupu pa treba maksimizirati
-    study.optimize(objective, n_trials=50) #staviti na 50 ili 100
+    study.optimize(objective, n_trials=100) #staviti na 50 ili 100
     print("Best Hyperparameters:", study.best_params)
 
 def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
