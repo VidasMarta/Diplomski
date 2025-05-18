@@ -114,6 +114,9 @@ def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-t
 
 
 if __name__ == "__main__":
-    set_seed()
-    main()
+    for seed in [42, 198, 6000, 3828, 7382]:
+        set_seed(seed)
+        main()
+
+    
     #python train.py --model_name='probni'

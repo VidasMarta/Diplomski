@@ -84,9 +84,9 @@ class Evaluation:
                 recall_strict = seqeval.metrics.recall_score(all_true_tags, all_pred_tags, average='micro', mode='strict', scheme=self.tagging_scheme)
                 logger.log_test_results(loss, f1_score, precision, recall, f1_score_strict, precision_strict, recall_strict)
 
-                print(seqeval.metrics.classification_report(all_true_tags, all_pred_tags))
+                print(seqeval.metrics.classification_report(all_true_tags, all_pred_tags, digits=4))
                 print("strict: ")
-                print(seqeval.metrics.classification_report(all_true_tags, all_pred_tags,  mode='strict', scheme=self.tagging_scheme))
+                print(seqeval.metrics.classification_report(all_true_tags, all_pred_tags, digits=4,  mode='strict', scheme=self.tagging_scheme))
                 print(f"Test Loss = {loss}")
             
             else:
