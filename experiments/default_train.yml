@@ -1,14 +1,14 @@
 # Model Hyperparameters
 model:
   cell: "lstm"  # Options: "lstm", "gru"
-  hidden_size: 512
+  hidden_size: 768
   num_layers: 1
-  dropout: 0.3
-  lr: 1e-3
+  dropout: 0.2866422237078609
+  lr: 0.0005843153646801519
   batch_size: 32
   use_crf: true  # Set to false if CRF is not used
   loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
-  optimizer: "adam"  # Options: "adam", "sgd", "rmsprop", "adamw"
+  optimizer: "adamw"  # Options: "adam", "sgd", "rmsprop", "adamw"
   epochs: 300
   max_length: 256
   max_grad_norm: 5.0
@@ -21,7 +21,7 @@ model:
 settings:
   word_embedding: "bioBERT"  # Options: "bioBERT", "bioELMo"
   bert_finetuning: true #Ignore if word_embedding not set to bioBERT
-  ft_lr: 2e-5 #staviti manji od lr-a za model     
+  ft_lr: 2.730980834923478e-05 #staviti manji od lr-a za model     
   char_cnn_embedding: true #if false, ignore cnn_* settings
   cnn_vocab: "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #Vidjeti jel se mijenja ako dodoamo velika slova u vokabular (i onda izbacimo .lower() u kodu)
   cnn_max_word_len: 20 #oko 20-30

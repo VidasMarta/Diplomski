@@ -10,8 +10,8 @@ from preprocessing import CharEmbeddingCNN, Embedding
 import settings
 from utils import trainer
 
-DATASET_NAME = "ncbi_disease_json" # or "bc5cdr_json"
-MODEL_NAME = "D1_hyper_param_tuning"
+DATASET_NAME = "bc5cdr_json" # or "ncbi_disease_json"
+MODEL_NAME = "D2_hyper_param_tuning" #D1
 
 def train_model(model_args):    
     # Load datasets for train and test

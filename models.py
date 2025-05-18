@@ -68,7 +68,7 @@ class BiRNN_CRF(nn.Module):
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
-            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
+            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, need_weights=False)  
             tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
@@ -100,7 +100,7 @@ class BiRNN_CRF(nn.Module):
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
-            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
+            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, need_weights=False)  
             tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
@@ -183,7 +183,7 @@ class ft_bb_BiRNN_CRF(nn.Module):
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
-            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
+            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, need_weights=False)  
             tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
@@ -217,7 +217,7 @@ class ft_bb_BiRNN_CRF(nn.Module):
 
         if self.attention:
             padding_mask = torch.where(mask == True, False, True) #key_padding_mask expects True on indexes that should be ignored
-            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask)  
+            attention_output, _ = self.attention_layer(o_tag, o_tag, o_tag, key_padding_mask = padding_mask, need_weights=False)  
             tag = self.hidden2tag_tag(torch.cat([attention_output, o_tag], dim=-1))
         else:
             tag = self.hidden2tag_tag(o_tag)
