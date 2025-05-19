@@ -10,8 +10,8 @@ from preprocessing import CharEmbeddingCNN, Embedding
 import settings
 from utils import trainer
 
-DATASET_NAME = "bc5cdr_json" # or "ncbi_disease_json"
-MODEL_NAME = "D2_hyper_param_tuning" #D1
+DATASET_NAME = "ncbi_disease_json" # or "ncbi_disease_json"
+MODEL_NAME = "D1_hyper_param_tuning" #D1
 
 def train_model(model_args):    
     # Load datasets for train and test
@@ -62,9 +62,9 @@ def objective(trial):
     model_args['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
     model_args['max_len'] = 256
     model_args['loss'] = 'CRF'
-    model_args['epochs'] = 10 #tako da kraće traje treniranje
+    model_args['epochs'] = 15 #tako da kraće traje treniranje
     model_args['max_grad_norm'] = 5.0
-    model_args['early_stopping'] = 3
+    model_args['early_stopping'] = 5
 
     return train_model(model_args) 
 

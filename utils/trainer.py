@@ -47,7 +47,7 @@ class Trainer(ABC):
             self.optimizer,
             mode='max',
             factor=0.5,
-            patience=2, 
+            patience=4, 
             verbose=True
         )
 

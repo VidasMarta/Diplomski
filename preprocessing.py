@@ -258,7 +258,7 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
             for sentence in batch_sentences:
                 sent_tensors = []
                 for word in sentence[:max_sent_len]:
-                    #word = word.lower() 
+                    word = word.lower() 
                     ohe = self._word_to_ohe(word).unsqueeze(0)
                     sent_tensors.append(ohe)
                 while len(sent_tensors) < max_sent_len:

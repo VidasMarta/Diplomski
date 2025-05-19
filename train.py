@@ -76,28 +76,32 @@ def main():
     test_data = Dataset(tokens_test_padded, tags_test_padded, attention_masks_test, crf_mask_test)
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
 
-    if settings_args['bert_finetuning'] and settings_args['word_embedding'] == 'bioBERT':
-        model_args['ft_lr'] = settings_args['ft_lr']
-        trainer.Finetuning_Trainer(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
-        word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
-        device, num_to_tag, eval, logger).train()
+    for seed in [42, 198, 6000, 3828, 7382]:
+        set_seed(seed)
+        if settings_args['bert_finetuning'] and settings_args['word_embedding'] == 'bioBERT':
+            model_args['ft_lr'] = settings_args['ft_lr']
+            trainer.Finetuning_Trainer(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
+            word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
+            device, num_to_tag, eval, logger).train()
 
-        best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
-        best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim']) 
-        best_model.load_state_dict(best_model_weights)
-        print("Testing")
-        eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger, True)
+            best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
+            best_model = models.ft_bb_BiRNN_CRF(num_tags, model_args, model_args['char_embedding_dim']) 
+            best_model.load_state_dict(best_model_weights)
+            print("Testing")
+            eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger, True)
 
-    else:
-        trainer.Normal_Trainer(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
-        word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
-        device, num_to_tag, eval, logger).train()
+        else:
+            trainer.Normal_Trainer(model_name, model_args, num_tags, train_data_loader, valid_data_loader, 
+            word_embeddings_model, char_emb, text_train, text_val, max_len, batch_size, 
+            device, num_to_tag, eval, logger).train()
 
-        best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
-        best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
-        best_model.load_state_dict(best_model_weights)
-        print("Testing")
-        eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger)
+            best_model_weights = torch.load(settings.MODEL_PATH + f"/{model_name}_best.bin")
+            best_model = models.BiRNN_CRF(num_tags, model_args, word_embeddings_model.embedding_dim, model_args['char_embedding_dim'])
+            best_model.load_state_dict(best_model_weights)
+            print("Testing")
+            eval.evaluate(test_data_loader, best_model, device, test_char_embeddings, num_to_tag, logger)
+
+    logger.calculate_mean_stddev()
         
 
 def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
@@ -114,9 +118,7 @@ def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-t
 
 
 if __name__ == "__main__":
-    for seed in [42, 198, 6000, 3828, 7382]:
-        set_seed(seed)
-        main()
-
+    main()
+    
     
     #python train.py --model_name='probni'
