@@ -9,9 +9,11 @@ from models import ft_bb_BiRNN_CRF
 from preprocessing import CharEmbeddingCNN, Embedding
 import settings
 from utils import trainer
+from optuna.visualization import plot_optimization_history, plot_param_importances
+import joblib
 
 DATASET_NAME = "ncbi_disease_json" # or "ncbi_disease_json"
-MODEL_NAME = "D1_hyper_param_tuning" #D1
+MODEL_NAME = "D1_hyper_param_tuning_2" #D1
 
 def train_model(model_args):    
     # Load datasets for train and test
@@ -70,8 +72,18 @@ def objective(trial):
 
 def main():
     study = optuna.create_study(direction='maximize') #gledat će f1 na val skupu pa treba maksimizirati
-    study.optimize(objective, n_trials=100) #staviti na 50 ili 100
+    study.optimize(objective, n_trials=70) #staviti na 50 ili 100
     print("Best Hyperparameters:", study.best_params)
+
+    joblib.dump(study, f"/lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.pkl") 
+
+    plotly_config = {"staticPlot": True}
+
+    fig = plot_optimization_history(study)
+    fig.show(config=plotly_config)
+
+    fig = plot_param_importances(study)
+    fig.show(config=plotly_config)
 
 def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
     np.random.seed(seed)

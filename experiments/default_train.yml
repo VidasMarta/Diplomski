@@ -12,8 +12,8 @@ model:
   epochs: 300
   max_length: 256
   max_grad_norm: 5.0
-  early_stopping: 10 #patience preporuca se izmedu 10 i 100 (obicno 10 ili 20)
-  attention: false #if false, ignore att_* params
+  early_stopping: 15 #patience preporuca se izmedu 10 i 100 (obicno 10 ili 20)
+  attention: true #if false, ignore att_* params
   att_num_of_heads: 16 #rule of thumb - d_model/h = 64 (za d_model=2*512 to je postavljenih 16)
 
 

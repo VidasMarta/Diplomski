@@ -38,18 +38,21 @@ class Trainer(ABC):
     def _train_one_epoch(self, data_loader, char_embeddings):
         pass
     
-    def train(self, save_model=True):
+    def train(self, save_model=True): #set to True when not using hyperparameter tuning
         self.optimizer = self._define_optimizer()
         self.model.to(self.device)
 
         # Add LR scheduler, TODO: istražiti koje parametre staviti tu
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            self.optimizer,
-            mode='max',
-            factor=0.5,
-            patience=4, 
-            verbose=True
-        )
+        if save_model:
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                self.optimizer,
+                mode='max',
+                factor=0.5,
+                patience=4,
+                threshold=1e-3, 
+                threshold_mode='rel',
+                verbose=True
+            )
 
         #Initialize Variables for EarlyStopping
         best_f1 = -1
@@ -79,7 +82,8 @@ class Trainer(ABC):
             #torch.cuda.empty_cache()
 
             #Step the scheduler with validation metric (F1)
-            scheduler.step(f1)
+            if save_model:
+                scheduler.step(f1)
 
             #Early stopping looking at f1-score (strict)
             if f1 > best_f1:
