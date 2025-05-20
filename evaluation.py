@@ -65,12 +65,12 @@ class Evaluation:
                 # Predicted tags already have no padding, so just map them to strings
                 relevant_pred_tags = self.emb_model.get_relevant_tags(pred_tags, num_to_tag_dict, crf_mask) # [[num_to_tag_dict[int(tag)] for tag in seq ] for seq in pred_tags]
 
-                for p, t in zip(relevant_pred_tags, relevant_true_tags):
-                    if len(p) != len(t):
-                        print(f"len missmatch: true {len(t)}, pred {len(p)}") 
+                #for p, t in zip(relevant_pred_tags, relevant_true_tags):
+                #    if len(p) != len(t):
+                #        print(f"len missmatch: true {len(t)}, pred {len(p)}") 
                 
-                all_true_tags.extend(relevant_true_tags)  
-                all_pred_tags.extend(relevant_pred_tags)
+                all_true_tags.append(relevant_true_tags)  
+                all_pred_tags.append(relevant_pred_tags)
 
             #mode='strict' ->  ensures that entity predictions are only counted as correct if they exactly match the true entity boundaries and the entity type
             f1_score = seqeval.metrics.f1_score(all_true_tags, all_pred_tags, average='micro') 
