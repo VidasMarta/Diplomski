@@ -60,7 +60,7 @@ def objective(trial):
     model_args['use_crf'] = True
     model_args['batch_size'] = 32
     model_args['num_layers'] = 1
-    model_args['cell'] = 'gru' #trial.suggest_categorical('cell', ['lstm', 'gru'])
+    model_args['cell'] = trial.suggest_categorical('cell', ['lstm', 'gru'])
     model_args['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
     model_args['max_len'] = 256
     model_args['loss'] = 'CRF'
@@ -83,7 +83,7 @@ def plot_graphs():
 
 def main():
     study = optuna.create_study(direction='maximize') #gledat će f1 na val skupu pa treba maksimizirati
-    study.optimize(objective, n_trials=70) #staviti na 50 ili 100
+    study.optimize(objective, n_trials=100) #staviti na 50 ili 100
     print("Best Hyperparameters:", study.best_params)
 
     joblib.dump(study, f"/lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.pkl") 
