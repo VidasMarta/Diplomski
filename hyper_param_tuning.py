@@ -71,7 +71,7 @@ def objective(trial):
     return train_model(model_args) 
 
 def plot_graphs():
-    study = joblib.load(f"/lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.pkl")
+    study = optuna.load_study(study_name=MODEL_NAME, storage=f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db")
     plotly_config = {"staticPlot": True}
 
     fig = plot_optimization_history(study)
@@ -82,11 +82,12 @@ def plot_graphs():
 
 
 def main():
-    study = optuna.create_study(direction='maximize') #gledat će f1 na val skupu pa treba maksimizirati
-    study.optimize(objective, n_trials=100) #staviti na 50 ili 100
-    print("Best Hyperparameters:", study.best_params)
+    storage_path = f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db"
 
-    joblib.dump(study, f"/lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.pkl") 
+    study = optuna.create_study(direction='maximize', study_name=MODEL_NAME, storage=storage_path, load_if_exists=True)
+    study.optimize(objective, n_trials=1)
+
+    print("Best Hyperparameters:", study.best_params)
 
 def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-talk-data/how-to-set-random-seeds-in-pytorch-and-tensorflow-89c5f8e80ce4
     np.random.seed(seed)
@@ -101,6 +102,6 @@ def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-t
     print(f"Random seed set as {seed}")
     
 if __name__ == "__main__":
-    set_seed()
-    main()
+    #set_seed()
+    #main()
     plot_graphs()
