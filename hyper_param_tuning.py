@@ -105,6 +105,6 @@ def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-t
     print(f"Random seed set as {seed}")
     
 if __name__ == "__main__":
-    #set_seed()
-    #main()
+    set_seed()
+    main()
     plot_graphs()
