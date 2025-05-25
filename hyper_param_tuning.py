@@ -71,7 +71,7 @@ def objective(trial):
     return train_model(model_args) 
 
 def plot_graphs():
-    study = optuna.load_study(study_name="my_study", storage=f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db")
+    study = optuna.load_study(study_name=MODEL_NAME, storage=f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db")
     plotly_config = {"staticPlot": True}
 
     fig = plot_optimization_history(study)
