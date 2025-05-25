@@ -71,7 +71,7 @@ def objective(trial):
     return train_model(model_args) 
 
 def plot_graphs():
-    study = optuna.load_study(study_name=MODEL_NAME, storage=f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db")
+    study = optuna.load_study(study_name="my_study", storage=f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db")
     plotly_config = {"staticPlot": True}
 
     fig = plot_optimization_history(study)
@@ -81,13 +81,14 @@ def plot_graphs():
     fig.show(config=plotly_config)
 
 
-def main():
+def main():        
     if not os.path.exists(f"lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}"):
         os.makedirs(f"lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}")
+
     storage_path = f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db"
 
     study = optuna.create_study(direction='maximize', study_name=MODEL_NAME, storage=storage_path, load_if_exists=True)
-    study.optimize(objective, n_trials=1)
+    study.optimize(objective, n_trials=10)
 
     print("Best Hyperparameters:", study.best_params)
 
@@ -104,6 +105,6 @@ def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-t
     print(f"Random seed set as {seed}")
     
 if __name__ == "__main__":
-    set_seed()
-    main()
+    #set_seed()
+    #main()
     plot_graphs()
