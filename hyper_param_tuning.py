@@ -82,8 +82,8 @@ def plot_graphs():
 
 
 def main():
-    if not os.path.exists("lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}"):
-        os.makedirs("lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}")
+    if not os.path.exists(f"lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}"):
+        os.makedirs(f"lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}")
     storage_path = f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db"
 
     study = optuna.create_study(direction='maximize', study_name=MODEL_NAME, storage=storage_path, load_if_exists=True)
