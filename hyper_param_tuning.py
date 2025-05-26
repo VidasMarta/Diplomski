@@ -42,7 +42,7 @@ def objective(trial):
     model_args['optimizer'] = "adamw" #trial.suggest_categorical("optimizer", ["adam", "adamw"])
     model_args['dropout'] = trial.suggest_uniform("dropout", 0.15, 0.45)
 
-    model_args['attention'] = trial.suggest_categorical("attention", [False, True])
+    model_args['attention'] = True #trial.suggest_categorical("attention", [False, True])
     if model_args['attention']:
         model_args['att_num_of_heads'] = trial.suggest_categorical("att_num_of_heads", [4, 8, 16])
     model_args['char_cnn_embedding'] = False #trial.suggest_categorical("char_cnn_embedding", [False, True])
