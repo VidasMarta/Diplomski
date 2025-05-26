@@ -13,7 +13,7 @@ from optuna.visualization import plot_optimization_history, plot_param_importanc
 import joblib
 
 DATASET_NAME = "ncbi_disease_json" # or "bc5cdr_json"
-MODEL_NAME = "D1_hyper_param_tuning_proba" #D1
+MODEL_NAME = "D1_hyper_param_tuning_attention" #D1
 
 def train_model(model_args):    
     # Load datasets for train and test
