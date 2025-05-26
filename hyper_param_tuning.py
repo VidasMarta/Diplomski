@@ -13,7 +13,7 @@ from optuna.visualization import plot_optimization_history, plot_param_importanc
 import joblib
 
 DATASET_NAME = "ncbi_disease_json" # or "bc5cdr_json"
-MODEL_NAME = "D1_hyper_param_tuning_attention" #D1
+MODEL_NAME = "D1_hyper_param_tuning_charCNN" #D1
 
 def train_model(model_args):    
     # Load datasets for train and test
@@ -42,10 +42,10 @@ def objective(trial):
     model_args['optimizer'] = "adamw" #trial.suggest_categorical("optimizer", ["adam", "adamw"])
     model_args['dropout'] = trial.suggest_uniform("dropout", 0.15, 0.45)
 
-    model_args['attention'] = True #trial.suggest_categorical("attention", [False, True])
+    model_args['attention'] = False #trial.suggest_categorical("attention", [False, True])
     if model_args['attention']:
         model_args['att_num_of_heads'] = trial.suggest_categorical("att_num_of_heads", [4, 8, 16])
-    model_args['char_cnn_embedding'] = False #trial.suggest_categorical("char_cnn_embedding", [False, True])
+    model_args['char_cnn_embedding'] = True #trial.suggest_categorical("char_cnn_embedding", [False, True])
     if model_args['char_cnn_embedding']:
         model_args['char_embedding_dim'] = trial.suggest_categorical("char_embedding_dim", [128, 256])
         feature_size = trial.suggest_categorical("feature_size", [128, 256])  
