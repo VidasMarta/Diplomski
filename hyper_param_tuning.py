@@ -88,7 +88,7 @@ def main():
     storage_path = f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db"
 
     study = optuna.create_study(direction='maximize') #, study_name=MODEL_NAME, storage=storage_path, load_if_exists=True)
-    study.optimize(objective, n_trials=10)
+    study.optimize(objective, n_trials=100)
 
     print("Best Hyperparameters:", study.best_params)
 
