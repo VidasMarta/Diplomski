@@ -36,16 +36,16 @@ def train_model(model_args):
 def objective(trial): 
     # Hyperparameters to tune
     model_args = {}
-    model_args['hidden_size'] = 256 #trial.suggest_categorical('hidden_size', [256, 512, 768])
-    model_args['lr'] = 0.0013367211092689295 #trial.suggest_float('lr', 5e-4, 1.5e-3, log=True) #trenutni lr na 1e-3
-    model_args['ft_lr'] = 2.7170546791615555e-05 #trial.suggest_float('ft_lr', 1e-5, 3e-5, log=True) #trenutni ft_lr na 2e-5
+    model_args['hidden_size'] = trial.suggest_categorical('hidden_size', [256, 512, 768])
+    model_args['lr'] = trial.suggest_float('lr', 5e-4, 1.5e-3, log=True) #trenutni lr na 1e-3
+    model_args['ft_lr'] = trial.suggest_float('ft_lr', 1e-5, 3e-5, log=True) #trenutni ft_lr na 2e-5
     model_args['optimizer'] = "adamw" #trial.suggest_categorical("optimizer", ["adam", "adamw"])
-    model_args['dropout'] = 0.31302679090368124 #trial.suggest_uniform("dropout", 0.15, 0.45)
+    model_args['dropout'] = trial.suggest_uniform("dropout", 0.15, 0.45)
 
     model_args['attention'] = trial.suggest_categorical("attention", [False, True])
     if model_args['attention']:
         model_args['att_num_of_heads'] = trial.suggest_categorical("att_num_of_heads", [4, 8, 16])
-    model_args['char_cnn_embedding'] = trial.suggest_categorical("char_cnn_embedding", [False, True])
+    model_args['char_cnn_embedding'] = False #trial.suggest_categorical("char_cnn_embedding", [False, True])
     if model_args['char_cnn_embedding']:
         model_args['char_embedding_dim'] = trial.suggest_categorical("char_embedding_dim", [128, 256])
         feature_size = trial.suggest_categorical("feature_size", [128, 256])  
@@ -82,12 +82,12 @@ def plot_graphs():
 
 
 def main():        
-    if not os.path.exists(f"lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}"):
-        os.makedirs(f"lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}")
+    if not os.path.exists(f"/lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}"):
+        os.makedirs(f"/lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}")
 
     storage_path = f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db"
 
-    study = optuna.create_study(direction='maximize', study_name=MODEL_NAME, storage=storage_path, load_if_exists=True)
+    study = optuna.create_study(direction='maximize') #, study_name=MODEL_NAME, storage=storage_path, load_if_exists=True)
     study.optimize(objective, n_trials=10)
 
     print("Best Hyperparameters:", study.best_params)
@@ -107,4 +107,4 @@ def set_seed(seed: int = 42): ##za reproducility, izvor: https://medium.com/we-t
 if __name__ == "__main__":
     set_seed()
     main()
-    plot_graphs()
+    #plot_graphs()
