@@ -1,10 +1,10 @@
 # Model Hyperparameters
 model:
   cell: "lstm"  # Options: "lstm", "gru"
-  hidden_size: 256
+  hidden_size: 512
   num_layers: 1
-  dropout: 0.2922083115411279
-  lr: 0.0010557631404242672
+  dropout: 0.2369553265544616
+  lr: 0.0006197409992597094
   batch_size: 32
   use_crf: true  # Set to false if CRF is not used
   loss: "CRF" # if use_crf else "cross_entropy", "focal_loss"
@@ -13,7 +13,7 @@ model:
   max_length: 256
   max_grad_norm: 5.0
   early_stopping: 10 #patience preporuca se izmedu 10 i 100 (obicno 10 ili 20)
-  attention: false #if false, ignore att_* params
+  attention: true #if false, ignore att_* params
   att_num_of_heads: 4 #rule of thumb - d_model/h = 64 (za d_model=2*512 to je postavljenih 16)
 
 
@@ -21,11 +21,11 @@ model:
 settings:
   word_embedding: "bioBERT"  # Options: "bioBERT", "bioELMo"
   bert_finetuning: true #Ignore if word_embedding not set to bioBERT
-  ft_lr: 2.2880772947508964e-05 #staviti manji od lr-a za model     
+  ft_lr: 2.0342922222353384e-05 #staviti manji od lr-a za model     
   char_cnn_embedding: true #if false, ignore cnn_* settings
   cnn_vocab: "bcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #Vidjeti jel se mijenja ako dodoamo velika slova u vokabular (i onda izbacimo .lower() u kodu)
   cnn_max_word_len: 20 #oko 20-30
   cnn_embedding_dim: 256
   feature_size: 128
-  dataset: "ncbi_disease_json" # Options: "bc5cdr_json", "ncbi_disease_json"
+  dataset: "bc5cdr_json" # Options: "bc5cdr_json", "ncbi_disease_json"
   tagging_scheme : "IOB1" #Other options: IOBES (depends on how the dataset is tagged)
