@@ -13,14 +13,14 @@ from optuna.visualization import plot_optimization_history, plot_param_importanc
 import joblib
 
 DATASET_NAME = "ncbi_disease_json" # "ncbi_disease_json" or "bc5cdr_json"
-MODEL_NAME = "D1_hyper_param_tuning_none" #D1 or D2
+MODEL_NAME = "D1_hyper_param_tuning_elmo_attention" #D1 or D2
 
 def train_model(model_args):    
     # Load datasets for train and test
     dataset_loader = DatasetLoader(DATASET_NAME, settings.DATA_PATH)
     tag_to_num, (text_train, tags_train), (text_val, tags_val), (_, _) = dataset_loader.load_data()
     num_to_tag = dict((v,k) for k,v in tag_to_num.items())
-    word_embeddings_model = Embedding.create("bioBERT", dataset_loader.dataset_name, model_args['max_len']) 
+    word_embeddings_model = Embedding.create(model_args['word_embedding'], dataset_loader.dataset_name, model_args['max_len']) 
     eval = Evaluation(word_embeddings_model, "IOB1")
     
     tokens_train_padded, tags_train_padded, attention_masks_train, crf_mask_train = word_embeddings_model.tokenize_and_pad_text(text_train, tags_train)
@@ -30,8 +30,12 @@ def train_model(model_args):
     train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=model_args['batch_size'])
     valid_data_loader = torch.utils.data.DataLoader(val_data, batch_size=model_args['batch_size'])
 
-    return trainer.Finetuning_Trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], 
+    if model_args['bert_finetuning']:
+        return trainer.Finetuning_Trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], 
                                     text_train, text_val,  model_args['max_len'], model_args['batch_size'],  model_args['device'], num_to_tag, eval, None).train(False)
+    else:
+        return trainer.Normal_Trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], 
+                                      text_train, text_val, model_args['max_len'], model_args['batch_size'], model_args['device'], num_to_tag, eval, None).train(False)
 
 def objective(trial): 
     # Hyperparameters to tune
@@ -42,9 +46,9 @@ def objective(trial):
     model_args['optimizer'] = "adamw" #trial.suggest_categorical("optimizer", ["adam", "adamw"])
     model_args['dropout'] = trial.suggest_uniform("dropout", 0.15, 0.45)
 
-    model_args['attention'] = False #trial.suggest_categorical("attention", [False, True])
+    model_args['attention'] = True #trial.suggest_categorical("attention", [False, True])
     if model_args['attention']:
-        model_args['att_num_of_heads'] = 4 #trial.suggest_categorical("att_num_of_heads", [4, 8, 16])
+        model_args['att_num_of_heads'] = trial.suggest_categorical("att_num_of_heads", [4, 8, 16])
     model_args['char_cnn_embedding'] = False #trial.suggest_categorical("char_cnn_embedding", [False, True])
     if model_args['char_cnn_embedding']:
         model_args['char_embedding_dim'] = 256 #trial.suggest_categorical("char_embedding_dim", [128, 256])
@@ -67,6 +71,8 @@ def objective(trial):
     model_args['epochs'] = 15 #tako da kraće traje treniranje
     model_args['max_grad_norm'] = 5.0
     model_args['early_stopping'] = 5
+    model_args['word_embedding'] = "bioELMo"
+    model_args['bert_finetuning'] = False
 
     return train_model(model_args) 
 
