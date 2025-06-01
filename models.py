@@ -62,7 +62,6 @@ class BiRNN_CRF(nn.Module):
             embedding = torch.cat((word_embedding, char_embedding), dim=-1) #spojiti embeddinge
         else:
             embedding = word_embedding
-        print(embedding.shape)
         h, _ = self.rnn(embedding)
         h_norm = self.normalize(h)
         o_tag = self.dropout_tag(h_norm)
@@ -115,7 +114,6 @@ class BiRNN_CRF(nn.Module):
         return predicted_tags
     
 class ft_bb_BiRNN_CRF(nn.Module):
-    # TODO: proučiti multitask segment binarne klasifikacije (focal ili dice loss)
     def __init__(self, num_tag, model_args, char_embedding_dim = None): 
         super(ft_bb_BiRNN_CRF, self).__init__()
         self.num_tag = num_tag
