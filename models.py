@@ -16,7 +16,7 @@ class BiRNN_CRF(nn.Module):
         self.dropout = model_args['dropout']
         self.use_crf = model_args['use_crf']
         self.attention = model_args['attention']
-            
+        
         self.embedding_dim = word_embedding_dim + char_embedding_dim if char_embedding_dim != None else word_embedding_dim
 
         if self.cell == 'lstm':
@@ -62,6 +62,7 @@ class BiRNN_CRF(nn.Module):
             embedding = torch.cat((word_embedding, char_embedding), dim=-1) #spojiti embeddinge
         else:
             embedding = word_embedding
+        print(embedding.shape)
         h, _ = self.rnn(embedding)
         h_norm = self.normalize(h)
         o_tag = self.dropout_tag(h_norm)
