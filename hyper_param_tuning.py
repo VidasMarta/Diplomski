@@ -74,26 +74,13 @@ def objective(trial):
     model_args['word_embedding'] = "bioELMo"
     model_args['bert_finetuning'] = False
 
+    print(model_args)
+
     return train_model(model_args) 
-
-def plot_graphs():
-    study = optuna.load_study(study_name=MODEL_NAME, storage=f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db")
-    plotly_config = {"staticPlot": True}
-
-    fig = plot_optimization_history(study)
-    fig.show(config=plotly_config)
-
-    fig = plot_param_importances(study)
-    fig.show(config=plotly_config)
 
 
 def main():        
-    if not os.path.exists(f"/lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}"):
-        os.makedirs(f"/lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}")
-
-    storage_path = f"sqlite:////lustre/home/mvidas/hyperparam_tuning/{MODEL_NAME}/study.db"
-
-    study = optuna.create_study(direction='maximize') #, study_name=MODEL_NAME, storage=storage_path, load_if_exists=True)
+    study = optuna.create_study(direction='maximize') 
     study.optimize(objective, n_trials=100)
 
     print("Best Hyperparameters:", study.best_params)
