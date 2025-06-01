@@ -13,7 +13,7 @@ from optuna.visualization import plot_optimization_history, plot_param_importanc
 import joblib
 
 DATASET_NAME = "ncbi_disease_json" # "ncbi_disease_json" or "bc5cdr_json"
-MODEL_NAME = "D1_hyper_param_tuning_elmo_attention" #D1 or D2
+MODEL_NAME = "D2_hyper_param_tuning_none" #D1 or D2
 
 def train_model(model_args):    
     # Load datasets for train and test
@@ -46,9 +46,9 @@ def objective(trial):
     model_args['optimizer'] = "adamw" #trial.suggest_categorical("optimizer", ["adam", "adamw"])
     model_args['dropout'] = trial.suggest_uniform("dropout", 0.15, 0.45)
 
-    model_args['attention'] = True #trial.suggest_categorical("attention", [False, True])
+    model_args['attention'] = False #trial.suggest_categorical("attention", [False, True])
     if model_args['attention']:
-        model_args['att_num_of_heads'] = trial.suggest_categorical("att_num_of_heads", [4, 8, 16])
+        model_args['att_num_of_heads'] = 4 #trial.suggest_categorical("att_num_of_heads", [4, 8, 16])
     model_args['char_cnn_embedding'] = False #trial.suggest_categorical("char_cnn_embedding", [False, True])
     if model_args['char_cnn_embedding']:
         model_args['char_embedding_dim'] = 256 #trial.suggest_categorical("char_embedding_dim", [128, 256])
@@ -71,8 +71,8 @@ def objective(trial):
     model_args['epochs'] = 15 #tako da kraće traje treniranje
     model_args['max_grad_norm'] = 5.0
     model_args['early_stopping'] = 5
-    model_args['word_embedding'] = "bioELMo"
-    model_args['bert_finetuning'] = False
+    model_args['word_embedding'] = "bioBERT" #"bioELMo"
+    model_args['bert_finetuning'] = True #False
 
     print(model_args)
 
