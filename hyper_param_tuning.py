@@ -33,7 +33,7 @@ def train_model(model_args):
     if model_args['bert_finetuning']:
         return trainer.Finetuning_Trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], 
                                     text_train, text_val,  model_args['max_len'], model_args['batch_size'],  model_args['device'], num_to_tag, eval, None).train(False)
-    else:
+    else: #TODO neki je problem tu, tj kod evaluate dobivam RuntimeError: input.size(-1) must be equal to input_size.
         return trainer.Normal_Trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], 
                                       text_train, text_val, model_args['max_len'], model_args['batch_size'], model_args['device'], num_to_tag, eval, None).train(False)
 
