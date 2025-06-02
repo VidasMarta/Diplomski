@@ -13,16 +13,16 @@ model:
   max_length: 256
   max_grad_norm: 5.0
   early_stopping: 10 #patience preporuca se izmedu 10 i 100 (obicno 10 ili 20)
-  attention: true #if false, ignore att_* params
+  attention: false #if false, ignore att_* params
   att_num_of_heads: 4 #rule of thumb - d_model/h = 64 (za d_model=2*512 to je postavljenih 16)
 
 
 # Embedding and Dataset Configuration
 settings:
   word_embedding: "bioBERT"  # Options: "bioBERT", "bioELMo"
-  bert_finetuning: true #Ignore if word_embedding not set to bioBERT
+  bert_finetuning: false #Ignore if word_embedding not set to bioBERT
   ft_lr: 2.628907967128477e-05 #staviti manji od lr-a za model     
-  char_cnn_embedding: true #if false, ignore cnn_* settings
+  char_cnn_embedding: false #if false, ignore cnn_* settings
   cnn_vocab: "bcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #Vidjeti jel se mijenja ako dodoamo velika slova u vokabular (i onda izbacimo .lower() u kodu)
   cnn_max_word_len: 20 #oko 20-30
   cnn_embedding_dim: 256
