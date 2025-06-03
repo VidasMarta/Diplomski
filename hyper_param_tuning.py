@@ -72,7 +72,7 @@ def objective(trial):
     model_args['max_grad_norm'] = 5.0
     model_args['early_stopping'] = 5
     model_args['word_embedding'] = "bioBERT"
-    model_args['bert_finetuning'] =False
+    model_args['bert_finetuning'] = False
 
     return train_model(model_args) 
 

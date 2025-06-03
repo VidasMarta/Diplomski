@@ -115,7 +115,7 @@ if __name__ == "__main__":
     model_name, model_args, settings_args = extract_args()
     logger = Logger(os.path.join(settings.LOG_PATH, model_name), model_args, settings_args)
     
-    for seed in [42]: #, 198, 6000, 3828, 7382]:
+    for seed in [42, 198, 6000, 3828, 7382]:
         set_seed(seed)
         main(model_name, model_args, settings_args, logger)
     
