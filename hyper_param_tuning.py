@@ -13,7 +13,7 @@ from optuna.visualization import plot_optimization_history, plot_param_importanc
 import joblib
 
 DATASET_NAME = "ncbi_disease_json" # "ncbi_disease_json" or "bc5cdr_json"
-MODEL_NAME = "D1_hyper_param_tuning_bert_none" #D1 or D2
+MODEL_NAME = "D1_hyper_param_tuning_elmo_none" #D1 or D2
 
 def train_model(model_args):    
     # Load datasets for train and test
@@ -71,7 +71,7 @@ def objective(trial):
     model_args['epochs'] = 15 #tako da kraće traje treniranje
     model_args['max_grad_norm'] = 5.0
     model_args['early_stopping'] = 5
-    model_args['word_embedding'] = "bioBERT"
+    model_args['word_embedding'] = "bioELMo"
     model_args['bert_finetuning'] = False
 
     return train_model(model_args) 
