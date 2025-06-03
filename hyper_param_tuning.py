@@ -12,8 +12,8 @@ from utils import trainer
 from optuna.visualization import plot_optimization_history, plot_param_importances
 import joblib
 
-DATASET_NAME = "bc5cdr_json" # "ncbi_disease_json" or "bc5cdr_json"
-MODEL_NAME = "D2_hyper_param_tuning_elmo_all" #D1 or D2
+DATASET_NAME = "ncbi_disease_json" # "ncbi_disease_json" or "bc5cdr_json"
+MODEL_NAME = "D1_hyper_param_tuning_elmo_all" #D1 or D2
 
 def train_model(model_args):    
     # Load datasets for train and test
