@@ -13,7 +13,7 @@ from optuna.visualization import plot_optimization_history, plot_param_importanc
 import joblib
 
 DATASET_NAME = "bc5cdr_json" # "ncbi_disease_json" or "bc5cdr_json"
-MODEL_NAME = "D2_hyper_param_tuning_all" #D1 or D2
+MODEL_NAME = "D2_hyper_param_tuning_elmo_all" #D1 or D2
 
 def train_model(model_args):    
     # Load datasets for train and test
@@ -33,7 +33,7 @@ def train_model(model_args):
     if model_args['bert_finetuning']:
         return trainer.Finetuning_Trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], 
                                     text_train, text_val,  model_args['max_len'], model_args['batch_size'],  model_args['device'], num_to_tag, eval, None).train(False)
-    else: #TODO neki je problem tu, tj kod evaluate dobivam RuntimeError: input.size(-1) must be equal to input_size.
+    else: 
         return trainer.Normal_Trainer(MODEL_NAME, model_args, len(tag_to_num), train_data_loader, valid_data_loader, word_embeddings_model, model_args['char_emb'], 
                                       text_train, text_val, model_args['max_len'], model_args['batch_size'], model_args['device'], num_to_tag, eval, None).train(False)
 
@@ -48,11 +48,11 @@ def objective(trial):
 
     model_args['attention'] = True #trial.suggest_categorical("attention", [False, True])
     if model_args['attention']:
-        model_args['att_num_of_heads'] = trial.suggest_categorical("att_num_of_heads", [4, 8, 16])
+        model_args['att_num_of_heads'] = 4 #trial.suggest_categorical("att_num_of_heads", [4, 8, 16])
     model_args['char_cnn_embedding'] = True #trial.suggest_categorical("char_cnn_embedding", [False, True])
     if model_args['char_cnn_embedding']:
-        model_args['char_embedding_dim'] = trial.suggest_categorical("char_embedding_dim", [128, 256])
-        feature_size = trial.suggest_categorical("feature_size", [128, 256])  
+        model_args['char_embedding_dim'] = 256 #trial.suggest_categorical("char_embedding_dim", [128, 256])
+        feature_size = 128 #trial.suggest_categorical("feature_size", [128, 256])  
         vocab = "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"
         max_word_len = 20
         model_args['char_emb'] = CharEmbeddingCNN(vocab, model_args['char_embedding_dim'], feature_size, max_word_len)
@@ -71,7 +71,7 @@ def objective(trial):
     model_args['epochs'] = 15 #tako da kraće traje treniranje
     model_args['max_grad_norm'] = 5.0
     model_args['early_stopping'] = 5
-    model_args['word_embedding'] = "bioBERT"
+    model_args['word_embedding'] = "bioELMo"
     model_args['bert_finetuning'] = False
 
     return train_model(model_args) 
@@ -79,7 +79,7 @@ def objective(trial):
 
 def main():        
     study = optuna.create_study(direction='maximize') 
-    study.optimize(objective, n_trials=100)
+    study.optimize(objective, n_trials=70)
 
     print("Best Hyperparameters:", study.best_params)
 
