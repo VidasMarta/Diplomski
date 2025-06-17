@@ -3,7 +3,7 @@ model:
   cell: "lstm"  # Options: "lstm", "gru"
   hidden_size: 768
   num_layers: 1
-  dropout:0.3950132068860944
+  dropout: 0.3950132068860944
   lr: 0.0008834734456690635
   batch_size: 32
   use_crf: true  # Set to false if CRF is not used
