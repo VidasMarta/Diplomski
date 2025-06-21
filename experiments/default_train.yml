@@ -27,5 +27,5 @@ settings:
   cnn_max_word_len: 20 #oko 20-30
   cnn_embedding_dim: 256
   feature_size: 128
-  dataset: "ncbi_disease_json" # Options: "bc5cdr_json", "ncbi_disease_json"
+  dataset: "bc5cdr_json" # Options: "bc5cdr_json", "ncbi_disease_json"
   tagging_scheme : "IOB1" #Other options: IOBES (depends on how the dataset is tagged)
