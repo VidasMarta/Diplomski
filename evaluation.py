@@ -2,7 +2,6 @@ import itertools
 import seqeval.metrics
 import seqeval.scheme
 import torch
-#from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, f1_score
 import numpy as np
 import matplotlib.pyplot as plt
 import seqeval 
@@ -21,7 +20,7 @@ class Evaluation:
         all_true_tags = []
         all_pred_tags = []
         final_loss = 0
-        for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
+        for (tokens, tags, emb_att_mask, crf_mask), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): 
                 if char_embedding != None:
                         batch_char_embedding = char_embedding.to(device)
                 else:
@@ -48,28 +47,13 @@ class Evaluation:
                 relevant_true_tags = self.emb_model.get_relevant_tags(tags, num_to_tag_dict, crf_mask)
 
                 # Predicted tags already have no padding, so just map them to strings
-                relevant_pred_tags = self.emb_model.get_relevant_tags(pred_tags, num_to_tag_dict, crf_mask) # [[num_to_tag_dict[int(tag)] for tag in seq ] for seq in pred_tags]
-
-                #for p, t in zip(relevant_pred_tags, relevant_true_tags):
-                #    if len(p) != len(t):
-                #        print(f"len missmatch: true {len(t)}, pred {len(p)}") 
+                relevant_pred_tags = self.emb_model.get_relevant_tags(pred_tags, num_to_tag_dict, crf_mask) 
                 
                 all_true_tags.extend(relevant_true_tags)  
                 all_pred_tags.extend(relevant_pred_tags)
         return all_true_tags, all_pred_tags, final_loss
         
     def evaluate(self, data_loader, model, device, char_embeddings, num_to_tag_dict, logger, ft_bb=False, epoch = -1):
-        '''
-        Evaluate the model on the test set
-        Args:
-            data_loader: DataLoader object with test data
-            model: Model object
-            device: Device to run the model on
-            embeddings_model: Embedding object
-            num_to_tag_dict: dictionary containing encoded int tags as keys and labels as values
-            logger: for logging losses and metrics
-            epoch: if test set use default -1
-        '''
         model = model.to(device)    
         model.eval()  # Set model to evaluation mode
         all_true_tags = []
