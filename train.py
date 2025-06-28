@@ -122,4 +122,3 @@ if __name__ == "__main__":
     logger.calculate_mean_stddev()
     
     
-    #python train.py --model_name='probni'

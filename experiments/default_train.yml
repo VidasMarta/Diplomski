@@ -20,7 +20,7 @@ model:
 # Embedding and Dataset Configuration
 settings:
   word_embedding: "bioBERT"  # Options: "bioBERT", "bioELMo"
-  bert_finetuning: true #Ignore if word_embedding not set to bioBERT
+  bert_finetuning: false #Ignore if word_embedding not set to bioBERT
   ft_lr: 2.429646264468357e-05 #staviti manji od lr-a za model     
   char_cnn_embedding: true #if false, ignore cnn_* settings
   cnn_vocab: "bcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}" #Vidjeti jel se mijenja ako dodoamo velika slova u vokabular (i onda izbacimo .lower() u kodu)

@@ -20,7 +20,7 @@ class DatasetLoader:
                     line = json.loads(line)
                     text.append(line["tokens"])
                     tags.append(line["tags"])
-            return text, tags # list(itertools.chain(*text)), list(itertools.chain(*tags))
+            return text, tags 
         else:
             print(f"File {file_path} not found")
 
@@ -72,51 +72,10 @@ class Dataset:
             self.crf_masks[idx]
         )
 
-def get_max_len(text_train): #, text_val, text_test):
-    max_len = max(len(sublist) for sublist in text_train)#train_max_len = max(len(sublist) for sublist in text_train)
-    #val_max_len = max(len(sublist) for sublist in text_val)
-    #test_max_len = max(len(sublist) for sublist in text_test)
-    #max_len = max(train_max_len, val_max_len, test_max_len)
+def get_max_len(text_train): 
+    max_len = max(len(sublist) for sublist in text_train)
     return min(max_len, MAX_LEN)
-
-'''
-def collate_fn(batch):
-    tokens, tags, att_masks = zip(*batch)
-
-    # Convert to tensors
-    tokens = torch.stack(tokens)  # Already padded from tokenizer
-    att_masks = torch.stack(att_masks)  # Already padded from tokenizer
-    
-    # Pad tags manually (set PAD value to -1)
-    tags = pad_sequence(tags, batch_first=True, padding_value=-1)
-
-    return tokens, tags, att_masks'''
  
-# Example usage
-if __name__ == "__main__":
-    dataset_loader = DatasetLoader("ncbi_disease_json", settings.DATA_PATH)
-    total_tags, (text_train, tags_train), (text_val, tags_val), (text_test, tags_test) = dataset_loader.load_data()
-    
-    max_len = get_max_len(text_train, text_val, text_test)
-
-    embeddings_model = Embedding.create('bioELMo', dataset_loader.dataset_name, max_len) #bioBERT
-    
-    tokens_train_padded, tags_train_padded, attention_masks = embeddings_model.tokenize_and_pad_text(text_train, tags_train)
-    train_dataset = Dataset(tokens_train_padded, tags_train_padded, attention_masks)
-
-
-    data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32) #, collate_fn=collate_fn)
-    i = 0
-    for text, tags, att_masks in data_loader:
-        print(f"Batch size: {text.shape[0]}")
-        print(f"Tokens shape: {text.shape}")
-        print(f"Tags shape: {tags.shape}")
-        print(f"Attention masks shape: {att_masks.shape}")
-        embs = embeddings_model.get_embedding(text, att_masks)
-        print(embs.shape)
-        #print(embs)
-        if i == 0:
-            break
 
 
     

@@ -26,40 +26,29 @@ class BiRNN_CRF(nn.Module):
         else:       
             raise ValueError(f"Cell {self.cell} not supported")
 
-        self.normalize = nn.LayerNorm(self.hidden_size*2) #Za nakon rnn-a bolji LayerNorm nego BatchNorm (https://arxiv.org/pdf/1607.06450)
+        self.normalize = nn.LayerNorm(self.hidden_size*2) 
         self.dropout_tag = nn.Dropout(self.dropout)
 
         if self.attention:
-            self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True) # *2 because of bidirectional
-            self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag) # *2 because of bidirectional
+            self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True) 
+            self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag)
         else:           
-            self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
+            self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) 
 
         if self.use_crf:
             self.crf_tag = CRF(self.num_tag)
         else:
             if model_args['loss'] == 'cross_entropy':
-                self.criterion = nn.CrossEntropyLoss(ignore_index=-1) #to ignore padding in loss computation
-            #mozda dodati jos neke loss funkcije
+                self.criterion = nn.CrossEntropyLoss(ignore_index=-1) 
             else:
                 raise ValueError(f"Loss {model_args['loss']} not supported")
 
     
     # Return the loss only, does not decode tags
     def forward(self, word_embedding, target_tag, attention_mask, char_embedding = None): 
-        '''
-        Forward pass of the model, computes the loss 
-        Args:
-            embedding: Embedding tensor with dimensions (batch_size, max_len, embedding_dim)
-            target_tag: Target tag tensor with dimensions (batch_size, max_len)
-            attention_mask: Attention masks tensor with dimensions (batch_size, max_len)
-
-        Returns:
-            loss: Loss value of crf or cross entropy, if crf is used, the loss is token mean
-        '''
         mask = attention_mask.bool()
         if char_embedding != None:
-            embedding = torch.cat((word_embedding, char_embedding), dim=-1) #spojiti embeddinge
+            embedding = torch.cat((word_embedding, char_embedding), dim=-1)
         else:
             embedding = word_embedding
         h, _ = self.rnn(embedding)
@@ -81,17 +70,9 @@ class BiRNN_CRF(nn.Module):
         return loss
 
     def predict(self, word_embedding, attention_mask, char_embedding = None): 
-        '''
-        Predict the most likely tag sequence
-        Args:
-            embedding: Embedding tensor with dimensions (batch_size, max_len, embedding_dim)
-            attention_masks: Attention masks tensor with dimensions (batch_size, max_len)
-        Returns:    
-            tag: Predicted tag tensor with dimensions (batch_size, max_len)
-        '''
         mask = attention_mask.bool()
         if char_embedding != None:
-            embedding = torch.cat((word_embedding, char_embedding), dim=-1) #spojiti embeddinge
+            embedding = torch.cat((word_embedding, char_embedding), dim=-1) 
         else:
             embedding = word_embedding
         h, _ = self.rnn(embedding)
@@ -142,38 +123,26 @@ class ft_bb_BiRNN_CRF(nn.Module):
         self.dropout_tag = nn.Dropout(self.dropout)
 
         if self.attention:
-            self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True) # *2 because of bidirectional
-            self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag) # *2 because of bidirectional
+            self.attention_layer = nn.MultiheadAttention(self.hidden_size*2, model_args['att_num_of_heads'], batch_first=True) 
+            self.hidden2tag_tag = nn.Linear(self.hidden_size*4, self.num_tag) 
         else:
-            self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) # *2 because of bidirectional
-
+            self.hidden2tag_tag = nn.Linear(self.hidden_size*2, self.num_tag) 
         if self.use_crf:
             self.crf_tag = CRF(self.num_tag)
         else:
             if model_args['loss'] == 'cross_entropy':
-                self.criterion = nn.CrossEntropyLoss(ignore_index=-1) #to ignore padding in loss computation
-            #mozda dodati jos neke loss funkcije
+                self.criterion = nn.CrossEntropyLoss(ignore_index=-1) 
             else:
                 raise ValueError(f"Loss {model_args['loss']} not supported")
 
     
     # Return the loss only, does not decode tags
     def forward(self, tokens, target_tag, attention_mask, char_embedding = None): 
-        '''
-        Forward pass of the model, computes the loss 
-        Args:
-            embedding: Embedding tensor with dimensions (batch_size, max_len, embedding_dim)
-            target_tag: Target tag tensor with dimensions (batch_size, max_len)
-            attention_mask: Attention masks tensor with dimensions (batch_size, max_len)
-
-        Returns:
-            loss: Loss value of crf or cross entropy, if crf is used, the loss is token mean
-        '''
         bert_out = self.bert(input_ids=tokens, attention_mask=attention_mask)
         bert_embeddings = bert_out.last_hidden_state
         mask = attention_mask.bool()
         if char_embedding != None:
-            embedding = torch.cat((bert_embeddings, char_embedding), dim=-1) #spojiti embeddinge
+            embedding = torch.cat((bert_embeddings, char_embedding), dim=-1) 
         else:
             embedding = bert_embeddings
         h, _ = self.rnn(embedding)
@@ -195,19 +164,11 @@ class ft_bb_BiRNN_CRF(nn.Module):
         return loss
 
     def predict(self, tokens, attention_mask, char_embedding = None): 
-        '''
-        Predict the most likely tag sequence
-        Args:
-            embedding: Embedding tensor with dimensions (batch_size, max_len, embedding_dim)
-            attention_masks: Attention masks tensor with dimensions (batch_size, max_len)
-        Returns:    
-            tag: Predicted tag tensor with dimensions (batch_size, max_len)
-        '''
         bert_out = self.bert(input_ids=tokens, attention_mask=attention_mask)
         bert_embeddings = bert_out.last_hidden_state
         mask = attention_mask.bool()
         if char_embedding != None:
-            embedding = torch.cat((bert_embeddings, char_embedding), dim=-1) #spojiti embeddinge
+            embedding = torch.cat((bert_embeddings, char_embedding), dim=-1) 
         else:
             embedding = bert_embeddings
         h, _ = self.rnn(embedding)

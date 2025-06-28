@@ -51,8 +51,7 @@ class Embedding(ABC): #For word embeddings
     def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
         pass
     
-class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://github.com/naver/biobert-pretrained)
-    #TODO: dodati finetuning kod po uzoru na https://medium.com/@0192.mayuri/bert-training-and-fine-tuning-c49718d639ba i https://github.com/dmis-lab/biobert/blob/master/run_ner.py
+class Embedding_bioBERT(Embedding): 
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
         super(Embedding_bioBERT, self).__init__(embedding_model_name, dataset_name, max_len)
         self.max_len = max_len
@@ -99,8 +98,6 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
                     word_level_mask.append(0)
                     aligned_tags.append(-1)
 
-            #assert len(aligned_tags) == len(word_level_mask), "Aligninig not good"
-
             all_input_ids.append(input_ids)
             all_attention_masks.append(attention_mask)
             all_padded_tags.append(torch.tensor(aligned_tags))
@@ -110,13 +107,6 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
 
 
     def get_embedding(self, token_list, attention_masks): 
-        '''
-        Get BioBERT embeddings using precomputed attention masks from dataloading.
-        Args:
-            tokens: List of tokenized sequences
-        Returns: 
-            embeddings_list: List of BioBERT embeddings for a batch
-        '''
         self.bert.eval()
         with torch.no_grad():
             outputs = self.bert(token_list, attention_mask=attention_masks)
@@ -136,7 +126,7 @@ class Embedding_bioBERT(Embedding): #TODO: dodati i tezine za large (https://git
 class Embedding_bioELMo(Embedding):
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
         super(Embedding_bioELMo, self).__init__(embedding_model_name, dataset_name, max_len)
-        # skinute tezine i options file dostupne na https://github.com/Andy-jqa/bioelmo?tab=readme-ov-file
+        # weights and options files downloaded from https://github.com/Andy-jqa/bioelmo?tab=readme-ov-file
         set_up_path = os.path.join(settings.EMBEDDINGS_PATH, "bioELMo_setup")
         options_file = os.path.join(set_up_path, "biomed_elmo_options.json")
         weight_file = os.path.join(set_up_path, "biomed_elmo_weights.hdf5")
@@ -160,23 +150,12 @@ class Embedding_bioELMo(Embedding):
         return tokens_padded, tags_padded, padding_mask, padding_mask 
 
     def get_embedding(self, tokens, attention_masks):  
-        '''
-        Get BioELMo embeddings for a list of tokens
-        Attention masks are not used for ELMo embedding
-        Args:
-            tokens: List of tokens
-        Returns: 
-            embeddings_list: List of BioELMo embeddings
-        '''
         self.elmo.eval() 
         with torch.no_grad():
             elmo_output = self.elmo(tokens)
 
             embeddings = elmo_output["elmo_representations"][0] # Removing the first dimension since it is 1
             mask = elmo_output["mask"]
-
-            #print("emb ", embeddings.shape)  # torch.Size([32, 123, 1024])
-            #print(mask.shape)  # torch.Size([32, 123])
             
             embeddings = embeddings * mask.unsqueeze(-1)  # Apply mask along token dimension
 
@@ -186,12 +165,10 @@ class Embedding_bioELMo(Embedding):
         return [[num_to_tag_dict[int(tag)] for tag in seq if int(tag) != -1] for seq in tags]
 
 
-class CharEmbeddingCNN(nn.Module): #For char embeddings
-    #TODO možda promijeniti model (tipa nešto kao ovo https://github.com/valdersoul/GRAM-CNN/blob/master/src/model.py)
-    def __init__(self, vocab, emb_size, feature_size, max_word_length, dropout=0.1): #, args, number_of_classes):
+class CharEmbeddingCNN(nn.Module): 
+    def __init__(self, vocab, emb_size, feature_size, max_word_length, dropout=0.1): 
         super(CharEmbeddingCNN, self).__init__()
        
-        #self.vocab = vocab if "<UNK>" in vocab else vocab + "<UNK>"
         self.vocab = vocab
         self.vocab_size = len(self.vocab)
         self.char_to_idx = {char: idx for idx, char in enumerate(self.vocab)}
@@ -202,21 +179,18 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
         # Define deep CNN layers (inspired by https://github.com/ahmedbesbes/character-based-cnn/blob/master/src/model.py)
         self.dropout_input = nn.Dropout1d(dropout)
 
-        # Conv layer block 1
         self.conv1 = nn.Sequential(
             nn.Conv1d(self.vocab_size, feature_size, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=2)
         )
-        
-        # Conv layer block 2
+
         self.conv2 = nn.Sequential(
             nn.Conv1d(feature_size, feature_size, kernel_size=5, padding=2),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=2)
         )
 
-        # Conv layer block 3
         self.conv3 = nn.Sequential(
             nn.Conv1d(feature_size, feature_size, kernel_size=7, padding=3),
             nn.ReLU(),
@@ -239,8 +213,8 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
         return x
 
     def forward(self, x):
-        x = self._forward_conv(x)  # (batch, features, 1)
-        x = x.view(x.size(0), -1)  # flatten
+        x = self._forward_conv(x) 
+        x = x.view(x.size(0), -1) 
         return self.fc(x)
     
     def _word_to_ohe(self, word): # make oh representation of a word and pad to max_word_len
@@ -249,7 +223,6 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
         padded = nn.functional.pad(one_hot, (0, self.max_word_length - one_hot.shape[1]))  # (vocab_size, max_word_length)
         return padded
    
-    # preraden kod s https://www.kaggle.com/code/anubhavchhabra/character-level-word-embeddings-using-1d-cnn
     def batch_cnn_embedding_generator(self, text, max_sent_len, batch_size):                 
         for i in range(0, len(text), batch_size):
             batch_sentences = text[i:i + batch_size]
@@ -263,77 +236,10 @@ class CharEmbeddingCNN(nn.Module): #For char embeddings
                     sent_tensors.append(ohe)
                 while len(sent_tensors) < max_sent_len:
                     sent_tensors.append(torch.zeros((1, self.vocab_size, self.max_word_length)))
-                word_tensors.append(torch.cat(sent_tensors, dim=0))  # (max_sent_len, vocab_size, max_word_length)
+                word_tensors.append(torch.cat(sent_tensors, dim=0))  
 
-            batch_tensor = torch.stack(word_tensors)  # (batch_size, max_sent_len, vocab_size, max_word_length)
-            batch_tensor = batch_tensor.view(-1, self.vocab_size, self.max_word_length)  # (B * L, V, W)
-            embeddings = self.forward(batch_tensor)  # (B * L, emb_size)
-            embeddings = embeddings.view(len(batch_sentences), max_sent_len, -1)  # (B, L, emb_size)
+            batch_tensor = torch.stack(word_tensors) 
+            batch_tensor = batch_tensor.view(-1, self.vocab_size, self.max_word_length)  
+            embeddings = self.forward(batch_tensor)  
+            embeddings = embeddings.view(len(batch_sentences), max_sent_len, -1) 
             yield embeddings
-
-from models import BiRNN_CRF, ft_bb_BiRNN_CRF
-# Example usage
-if __name__ == "__main__":
-    # Dummy tag mapping
-    tag2num = {'O': 0, 'B-Disease': 1, 'I-Disease': 2}
-    num2tag = {v: k for k, v in tag2num.items()}
-
-    # Dummy data: two tokenized sentences and corresponding tags
-    sentences = [
-        ["The", "patient", "was", "diagnosed", "with", "pneumonia", "."],
-        ["He", "has", "diabetes", "mellitus"]
-    ]
-
-    tags = [
-        [0, 0, 0, 0, 0, 1, 0],   # "pneumonia" is a disease
-        [0, 0, 1, 2]          # "diabetes mellitus" is a multi-token entity
-
-    ]
-
-    # Create the embedding instance
-    embedder = Embedding.create("bioBERT", "dummy_dataset", max_len=16)
-
-    # Get token ids, tag ids, attention masks, and word-level masks
-    input_ids, padded_tags, attention_masks, crf_mask = embedder.tokenize_and_pad_text(sentences, tags)
-
-    # Get embeddings from BioBERT
-    embeddings = embedder.get_embedding(input_ids, attention_masks)
-
-    # Verify output shapes
-    print(f"Input IDs shape: {input_ids.shape}")            # [batch, max_len]
-    print(f"Padded Tags shape: {padded_tags.shape}")        # [batch, max_len]
-    print(f"Attention Mask shape: {attention_masks.shape}") # [batch, max_len]
-    print(f"Embeddings shape: {embeddings.shape}")          # [batch, max_len, 768]
-
-    vocab = "abcdefghijklmnopqrstuvwxyz0123456789-,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"
-    char_emb_size = 256
-    max_word_len = 20
-    char_emb = CharEmbeddingCNN(vocab, char_emb_size, 256, max_word_len)
-    char_embeddings = char_emb.batch_cnn_embedding_generator(sentences, 16, 2).__next__()
-
-    print(f"Char embedding shape: {char_embeddings.shape}") # [batch, max_len, 256]
-
-
-    # Convert back predicted tags for evaluation/debugging
-    decoded_tags = embedder.get_relevant_tags(padded_tags, num2tag, crf_mask)
-    print(f"Decoded tags: {decoded_tags}")
-    
-    model_args = dict()
-    model_args['cell'] = 'lstm'
-    model_args['hidden_size'] = 512
-    model_args['num_layers'] = 1
-    model_args['dropout'] = 0.3
-    model_args['use_crf'] = True
-    model_args['loss'] = "CRF"
-    model_args['attention'] = True
-    model_args['att_num_of_heads'] = 2
-    model_args['att_local'] = True
-    model_args['att_local_window_size'] = 2
-
-    model = ft_bb_BiRNN_CRF(3, model_args) #, char_emb_size)
-    logits = model(input_ids, padded_tags, attention_masks) #, char_embeddings)
-    preds = model.predict(input_ids, attention_masks) #, char_embeddings)
-
-    pred_tags = embedder.get_relevant_tags(preds, num2tag, crf_mask) #[[num2tag[int(tag)] for tag in seq ] for seq in preds]
-    print(f"Predicted tags: {pred_tags}")
-

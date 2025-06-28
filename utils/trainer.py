@@ -42,7 +42,7 @@ class Trainer(ABC):
         self.optimizer = self._define_optimizer()
         self.model.to(self.device)
 
-        # Add LR scheduler, TODO: istražiti koje parametre staviti tu
+        # Add LR scheduler
         if save_model:
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer,
@@ -59,7 +59,6 @@ class Trainer(ABC):
         best_model_weights = None
         patience = int(self.model_args['early_stopping'])
         epochs_no_improve = 0
-        #min_delta = float(model_args['min_delta'])
 
         for epoch in range(self.num_epochs):
             if self.char_emb is not None:
@@ -72,14 +71,12 @@ class Trainer(ABC):
             train_loss = self._train_one_epoch(self.train_data_loader, train_char_embeddings)
             if save_model:
                 self.logger.log_train_loss(epoch+1, train_loss)
-            #torch.cuda.empty_cache()
 
             # Validation
             if save_model:
                 val_loss, f1 = self.eval.evaluate(self.valid_data_loader, self.model, self.device, val_char_embeddings, self.num_to_tag, self.logger, self.finetuning, epoch+1)
             else:
                 val_loss, f1 = self.eval.hyperparam_eval(self.valid_data_loader, self.model, self.device, val_char_embeddings, self.num_to_tag, self.finetuning)
-            #torch.cuda.empty_cache()
 
             #Step the scheduler with validation metric (F1)
             if save_model:
@@ -146,7 +143,7 @@ class Finetuning_Trainer(Trainer):
     def _train_one_epoch(self, data_loader, char_embeddings):
         self.model.train()
         final_loss = 0
-        for (tokens, tags, emb_att_mask, _), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
+        for (tokens, tags, emb_att_mask, _), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): 
             self.optimizer.zero_grad()
 
             batch_tokens = tokens.to(self.device)
@@ -186,15 +183,14 @@ class Normal_Trainer(Trainer):
         elif self.model_args['optimizer'] == 'adamw':
             return AdamW(self.model.parameters(), lr=float(self.model_args['lr']))
         elif self.model_args['optimizer'] == 'sgd':
-            return SGD(self.model.parameters(), lr=float(self.model_args['lr'])) #, momentum=0.9)
-        #   Add more optimizers here if nessesary
+            return SGD(self.model.parameters(), lr=float(self.model_args['lr'])) 
         else:
             raise ValueError(f"Optimizer {self.model_args['optimizer']} not supported")
         
     def _train_one_epoch(self, data_loader, char_embeddings):
         self.model.train()
         final_loss = 0
-        for (tokens, tags, emb_att_mask, _), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): # tqdm(data_loader, total=len(data_loader)):
+        for (tokens, tags, emb_att_mask, _), char_embedding in zip(data_loader, char_embeddings or itertools.repeat(None)): 
             self.optimizer.zero_grad()
             
             batch_embeddings = self.word_embeddings_model.get_embedding(tokens, emb_att_mask) 
