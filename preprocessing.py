@@ -50,6 +50,10 @@ class Embedding(ABC): #For word embeddings
     @abstractmethod
     def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
         pass
+
+    @abstractmethod
+    def get_word_on_index(self, tokens, idxs):
+        pass
     
 class Embedding_bioBERT(Embedding): 
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
@@ -122,6 +126,10 @@ class Embedding_bioBERT(Embedding):
                     relevant_tags.append(num_to_tag_dict[int(tag)])
             all_relevant_tags.append(relevant_tags)
         return all_relevant_tags
+    
+    def get_word_on_index(self, tokens, idxs):
+        tokens_of_interest = [tokens[i] for i in idxs]
+        return self.tokenizer.decode(tokens_of_interest)
 
 class Embedding_bioELMo(Embedding):
     def __init__(self, embedding_model_name, dataset_name, max_len=256):
@@ -163,6 +171,9 @@ class Embedding_bioELMo(Embedding):
 
     def get_relevant_tags(self, tags, num_to_tag_dict, word_level_masks):
         return [[num_to_tag_dict[int(tag)] for tag in seq if int(tag) != -1] for seq in tags]
+    
+    def get_word_on_index(self, tokens, idxs):
+        return [tokens[i] for i in idxs]
 
 
 class CharEmbeddingCNN(nn.Module): 
