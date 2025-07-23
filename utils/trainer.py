@@ -82,7 +82,7 @@ class Trainer(ABC):
             if save_model:
                 scheduler.step(f1)
 
-            wrong_words = self.eval.get_wrong_preds(self.valid_data_loader, self.model, self.device, val_char_embeddings, self.num_to_tag_dict, self.finetuning)
+            wrong_words = self.eval.get_wrong_preds(self.valid_data_loader, self.model, self.device, val_char_embeddings, self.num_to_tag, self.finetuning)
             print(wrong_words[:10])
 
             #Early stopping looking at f1-score (strict)
